@@ -1,0 +1,588 @@
+/* ===============================
+   Automation Portal – theme.scss
+   =============================== */
+
+:root {
+    /* Sidebar (dark) */
+    --sidebar-collapsed: 64px;
+    /* icon rail width when collapsed */
+    --sidebar-expanded: 240px;
+    /* width on hover/expanded */
+    --sidebar-bg: #0b1220;
+    /* deep blue-gray */
+    --sidebar-accent: #5865f2;
+    /* indigo accent */
+
+    --chip-running: #22c55e;
+    /* green */
+    --chip-stopped: #9ca3af;
+    /* gray */
+    --chip-error: #ef4444;
+    /* red */
+
+    /* Light workspace (right side) */
+    --ws-bg: #f5f7fa;
+    /* page background */
+    --ws-surface: #ffffff;
+    /* cards / toolbars */
+    --ws-text: #111827;
+    /* primary text */
+    --ws-muted: #6b7280;
+    /* secondary text */
+    --ws-border: #e5e7eb;
+    /* light borders */
+    --ws-outline: #334155;
+    /* outline buttons/inputs border */
+    --ws-outline-hover: #1f2937;
+    /* hover border */
+}
+
+/* Base */
+html,
+body,
+#root {
+    height: 100%;
+}
+
+body {
+    overflow: hidden;
+    background: var(--ws-bg);
+    /* light page background */
+    color: var(--ws-text);
+    /* default text dark */
+}
+
+/* ===============================
+   App Grid Layout
+   sidebar | topbar | content
+   =============================== */
+.app-grid {
+    display: grid;
+    grid-template-columns: var(--sidebar-collapsed) 1fr;
+    grid-template-rows: 56px 1fr;
+    grid-template-areas:
+        "sidebar topbar"
+        "sidebar content";
+    height: 100vh;
+}
+
+/* ===============================
+   Sidebar (dark)
+   =============================== */
+.sidebar {
+    grid-area: sidebar;
+    background: var(--sidebar-bg);
+    transition: width 200ms ease;
+    width: var(--sidebar-collapsed);
+    overflow: hidden;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 1029;
+}
+
+/* Hover → expand (desktop) */
+.sidebar:hover {
+    width: var(--sidebar-expanded);
+}
+
+/* Brand row */
+.brand {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    color: #fff;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    white-space: nowrap;
+}
+
+.brand i {
+    font-size: 1.25rem;
+    color: var(--sidebar-accent);
+}
+
+.brand span {
+    opacity: .95;
+    font-weight: 600;
+}
+
+/* Nav rail */
+.nav-rail {
+    padding: 8px;
+}
+
+.nav-rail .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #cbd5e1;
+    border-radius: 10px;
+    padding: 10px 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nav-rail .nav-link i {
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+
+.nav-rail .nav-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+
+.nav-rail .nav-link.active {
+    background: rgba(88, 101, 242, 0.25);
+    color: #fff;
+}
+
+.nav-section-title {
+    font-size: .7rem;
+    letter-spacing: .08em;
+    color: #94a3b8;
+    margin: 12px 8px 6px;
+    text-transform: uppercase;
+}
+
+/* ------- Collapsed state (icons only) ------- */
+.sidebar:not(:hover) .brand span,
+.sidebar:not(:hover) .nav-rail .nav-link span,
+.sidebar:not(:hover) .nav-section-title {
+    display: none;
+    /* hide labels when rail is collapsed */
+}
+
+/* center the brand icon when collapsed */
+.sidebar:not(:hover) .brand {
+    justify-content: center;
+    padding: 0;
+    /* remove side padding to avoid clipping */
+}
+
+/* center nav icons when collapsed */
+.sidebar:not(:hover) .nav-rail .nav-link {
+    justify-content: center;
+    padding: 10px;
+    /* equal padding; no leftover label space */
+}
+
+/* ===============================
+   Topbar (light)
+   =============================== */
+.topbar {
+    grid-area: topbar;
+    backdrop-filter: blur(8px);
+    background: var(--ws-surface);
+    border-bottom: 1px solid var(--ws-border);
+    color: var(--ws-text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 1028;
+}
+
+/* Topbar buttons: outline-dark look */
+.topbar .btn {
+    color: var(--ws-text);
+    border-color: var(--ws-outline);
+    background: transparent;
+}
+
+.topbar .btn:hover {
+    border-color: var(--ws-outline-hover);
+}
+
+/* Search bar (light) */
+.searchbar {
+    width: min(720px, 52vw);
+}
+
+.searchbar .input-group-text {
+    background: var(--ws-surface);
+    border-color: var(--ws-border);
+    color: var(--ws-muted);
+}
+
+.searchbar .form-control {
+    background: var(--ws-surface);
+    border-color: var(--ws-border);
+    color: var(--ws-text);
+}
+
+.searchbar .form-control::placeholder {
+    color: #9ca3af;
+}
+
+.searchbar .form-control:focus {
+    box-shadow: none;
+    border-color: var(--sidebar-accent);
+}
+
+/* ===============================
+   Content (light)
+   =============================== */
+.app-content {
+    grid-area: content;
+    overflow: auto;
+    padding: 24px;
+    background: var(--ws-bg);
+    color: var(--ws-text);
+}
+
+/* ===============================
+   Scenario cards & chips (light)
+   =============================== */
+.scenario-card {
+    background: var(--ws-surface);
+    color: var(--ws-text);
+    border: 1px solid var(--ws-border);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.scenario-card:hover {
+    border-color: #d1d5db;
+}
+
+/* light hover */
+
+.card .text-secondary {
+    color: var(--ws-muted) !important;
+}
+
+/* Toolbar buttons inside content */
+.toolbar .btn {
+    color: var(--ws-text);
+    border-color: var(--ws-outline);
+    background: transparent;
+}
+
+.toolbar .btn.active,
+.toolbar .btn:active {
+    background: #eef2ff;
+    /* subtle indigo tint */
+    border-color: var(--sidebar-accent);
+}
+
+/* Chips on light background: subtle tints */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 600;
+    background: #f8fafc;
+    /* very light base */
+    border: 1px solid var(--ws-border);
+    color: var(--ws-text);
+}
+
+.chip i {
+    font-size: .75rem;
+}
+
+.chip.running {
+    background: rgba(34, 197, 94, .12);
+    color: #166534;
+}
+
+.chip.stopped {
+    background: rgba(148, 163, 184, .18);
+    color: #334155;
+}
+
+.chip.error {
+    background: rgba(239, 68, 68, .12);
+    color: #991b1b;
+}
+
+/* ===============================
+   Responsive (≤ lg)
+   - sidebar becomes off-canvas width:0
+   - hamburger button shows
+   =============================== */
+@media (max-width: 992px) {
+    .app-grid {
+        grid-template-columns: 0 1fr;
+    }
+
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 0;
+        /* fully hidden until toggled */
+    }
+
+    .sidebar.show {
+        width: var(--sidebar-expanded);
+    }
+
+    .topbar .btn-sidebar {
+        display: inline-flex !important;
+    }
+}
+
+/* ========== Workspace polish ========== */
+
+/* White card container and rounded corners on tables */
+.ws-card {
+    background: var(--ws-surface);
+    border: 1px solid var(--ws-border);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Table look (Zapier-like) */
+.table.ws-table thead th {
+    background: var(--ws-surface);
+    border-bottom: 1px solid var(--ws-border);
+    font-weight: 600;
+}
+
+.table.ws-table tbody tr:hover {
+    background: #fafbfc;
+}
+
+.table.ws-table td,
+.table.ws-table th {
+    border-color: var(--ws-border);
+    vertical-align: middle;
+}
+
+/* Owner badge shape */
+.ws-owner {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+/* Dropdown menu aesthetics */
+.dropdown-menu.ws-menu {
+    border: 1px solid var(--ws-border);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
+    border-radius: 12px;
+    padding: 6px;
+}
+
+.dropdown-menu.ws-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    padding: 8px 10px;
+}
+
+.dropdown-menu.ws-menu .dropdown-item:hover:not(.disabled) {
+    background: #f3f4f6;
+}
+
+.dropdown-menu.ws-menu .dropdown-divider {
+    margin: 6px 0;
+}
+
+.dropdown-menu.ws-menu .disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+/* Prevent dropdowns from being clipped by table/card */
+.ws-card {
+    overflow: visible;
+}
+
+.ws-table-wrap {
+    overflow: visible;
+}
+
+/* was .table-responsive; keep width; no inner scroll */
+
+/* Clickable title link look */
+.ws-link {
+    color: var(--ws-text);
+    text-decoration: none;
+}
+
+.ws-link:hover {
+    text-decoration: underline;
+}
+
+/* Optional: smaller caret gap in small dropdowns */
+.btn-group .btn.btn-sm i {
+    vertical-align: -1px;
+}
+
+/* add horizontal padding inside scenario tables */
+.ws-card {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+/* ===== Builder (Create) ===== */
+.builder-shell {
+    position: relative;
+    height: calc(100vh - 56px);
+    /* below topbar */
+    outline: none;
+    /* for keyboard shortcuts focus */
+}
+
+.builder-canvas {
+    position: absolute;
+    inset: 0;
+    background: var(--ws-bg);
+    /* same light workspace bg */
+}
+
+/* floating palette (right side like your screenshot) */
+.builder-palette {
+    position: absolute;
+    top: 80px;
+    right: 24px;
+    width: 300px;
+    background: var(--ws-surface);
+    border: 1px solid var(--ws-border);
+    border-radius: 12px;
+    z-index: 5;
+}
+
+/* top-left breadcrumb */
+.builder-title {
+    background: var(--ws-surface);
+    border: 1px solid var(--ws-border);
+    border-radius: 10px;
+    padding: 6px 10px;
+}
+
+/* bottom toolbar */
+.builder-toolbar {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ws-surface);
+    border: 1px solid var(--ws-border);
+    border-radius: 999px;
+    padding: 6px 10px;
+}
+
+/* Upgrade button (pill, gradient) */
+.btn-upgrade {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 0;
+    color: #fff !important;
+    text-decoration: none;
+
+    background: #22c55e !important;
+    /* green */
+    /* Or gradient: background: linear-gradient(135deg, #22c55e, #16a34a) !important; */
+
+    box-shadow: 0 6px 16px rgba(34, 197, 94, 0.25);
+}
+
+
+.btn-upgrade:hover {
+    filter: brightness(1.05);
+    color: #fff;
+}
+
+.btn-upgrade:focus {
+    outline: 2px solid rgba(34, 197, 94, .4);
+    outline-offset: 2px;
+}
+
+/* Templates polish */
+.btn-chip {
+    border: 1px solid var(--ws-border);
+    background: #fff;
+    color: var(--ws-text);
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.btn-chip.active {
+    border-color: var(--sidebar-accent);
+    background: #eef2ff;
+}
+
+.tpl-badge {
+    font-weight: 600;
+}
+
+.tpl-badge.featured {
+    background: #eef2ff;
+    color: #3730a3;
+    border: 1px solid #c7d2fe;
+}
+
+.tpl-badge.popular {
+    background: #ecfeff;
+    color: #155e75;
+    border: 1px solid #a5f3fc;
+}
+
+.tpl-badge.new {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+/* Simple overlay modal */
+.tpl-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background: rgba(15, 23, 42, 0.45);
+    display: grid;
+    place-items: center;
+}
+
+.tpl-dialog {
+    width: min(720px, 90vw);
+}
+
+.builder-bottom-bar {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 24px; // moved up from 12px to add bottom padding
+    z-index: 10;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 8px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+/* Custom tooltip animation */
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+  
