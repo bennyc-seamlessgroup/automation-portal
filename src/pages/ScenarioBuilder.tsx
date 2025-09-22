@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 import ReactFlow, {
   ReactFlowProvider,
   Background,
@@ -17,6 +18,9 @@ import ReactFlow, {
 } from "reactflow";
 import type { Node, Edge, Connection } from "reactflow";
 import "reactflow/dist/style.css";
+import { useScenarios } from "../state/ScenariosContext";
+import type { Scenario } from "../state/scenarios";
+import { humanAgo } from "../state/scenarios";
 
 /** TYPES */
 type CategoryKey = "apps" | "ai" | "flow" | "utilities" | "products" | "custom";
@@ -261,12 +265,12 @@ const styles = {
   /* Bottom action bar (Make-like) */
   bottomBar: {
     position: "absolute" as const, left: "50%", transform: "translateX(-50%)", bottom: 12, zIndex: 10,
-    background: "#fff", border: "1px solid #e5e7eb", borderRadius: 999, padding: 8, boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
+    background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: 8, boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
     display: "flex", alignItems: "center", gap: 10,
   },
-  bottomGroup: { display: "flex", alignItems: "center", gap: 10 },
+  bottomGroup: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
   divider: { width: 1, height: 24, background: "#e5e7eb" },
-  toggleWrap: { display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 999, background: "#f9fafb", border: "1px solid #e5e7eb" },
+  toggleWrap: { display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 999, background: "#f9fafb", border: "1px solid #e5e7eb", whiteSpace: "nowrap" },
   tinyBtn: { border: "1px solid #e5e7eb", background: "#fff", padding: "6px 8px", borderRadius: 8, cursor: "pointer", fontSize: 13 },
   menuWrap: { position: "relative" as const },
   menuList: { position: "absolute" as const, right: 0, bottom: "110%", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.15)", overflow: "hidden" },
@@ -332,8 +336,9 @@ function InitialNode({ selected }: NodeProps<RFData>) {
 }
 function AppNode({ id, data, selected }: NodeProps<RFData>) {
   const spec = getAppSpec(data.appKey as AppKey);
+  const displayLabel = data.label || spec.name; // Use custom label if available, fallback to spec name
   return (
-    <NodeShell id={id} color={spec.color} label={spec.name} selected={selected}>
+    <NodeShell id={id} color={spec.color} label={displayLabel} selected={selected}>
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 8 }}>
         <div title={spec.name} style={{
           width: ICON_W, height: ICON_H, borderRadius: "50%", background: spec.color, color: "white", fontSize: 30,
@@ -357,7 +362,13 @@ function Drawer({ open, children, onClose, title = "Settings" }: { open: boolean
     </div>
   );
 }
-function InspectorBody({ node, onChangeNode, onDeleteNode }: { node: Node<RFData>; onChangeNode: (n: Node<RFData>) => void; onDeleteNode: (id: string) => void; }) {
+function InspectorBody({ node, onChangeNode, onDeleteNode, onSave, onClose }: { 
+  node: Node<RFData>; 
+  onChangeNode: (n: Node<RFData>) => void; 
+  onDeleteNode: (id: string) => void; 
+  onSave: () => void;
+  onClose: () => void;
+}) {
   const isApp = node.type === "app";
   const data = (node.data || {}) as RFData;
   const spec: AppSpec | null = isApp ? getAppSpec(data.appKey as AppKey) : null;
@@ -365,6 +376,26 @@ function InspectorBody({ node, onChangeNode, onDeleteNode }: { node: Node<RFData
 
   return (
     <>
+      {/* Header with close button */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Node Settings</h3>
+        <button 
+          onClick={onClose}
+          style={{ 
+            background: "transparent", 
+            border: "none", 
+            fontSize: 18, 
+            cursor: "pointer", 
+            color: "#6b7280",
+            padding: "4px 8px",
+            borderRadius: 4
+          }}
+          title="Close"
+        >
+          ×
+        </button>
+      </div>
+
       <div>
         <div style={styles.formLabel}>Label</div>
         <input style={styles.input} value={data.label ?? ""} onChange={(e) => setData({ label: e.target.value })} placeholder="Node label" />
@@ -391,7 +422,37 @@ function InspectorBody({ node, onChangeNode, onDeleteNode }: { node: Node<RFData
           ))}
         </div>
       )}
-      <button style={styles.delBtn} onClick={() => onDeleteNode(node.id)}>Delete node</button>
+      <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
+        <button 
+          style={{ 
+            ...styles.delBtn, 
+            background: "#dc2626", 
+            color: "white", 
+            border: "1px solid #dc2626",
+            flex: 1
+          }} 
+          onClick={() => {
+            const ok = window.confirm("Delete this node? This action cannot be undone.");
+            if (!ok) return;
+            onDeleteNode(node.id);
+            onSave();
+          }}
+        >
+          Delete node
+        </button>
+        <button 
+          style={{ 
+            ...styles.delBtn, 
+            background: "#059669", 
+            color: "white", 
+            border: "1px solid #059669",
+            flex: 1
+          }} 
+          onClick={onSave}
+        >
+          Save changes
+        </button>
+      </div>
     </>
   );
 }
@@ -483,21 +544,23 @@ function FunctionPicker({ open, onPick, onClose, initialCategory = "apps" }: {
 
 /** MAIN */
 export default function ScenarioBuilder() {
+  const { id } = useParams();
   return (
     <ReactFlowProvider>
-      <EditorShell />
+      <EditorShell scenarioId={id ?? null} />
     </ReactFlowProvider>
   );
 }
 
-function EditorShell() {
+function EditorShell({ scenarioId }: { scenarioId: string | null }) {
+  const { save, get } = useScenarios();
   const [nodes, setNodes, onNodesChange] = useNodesState<RFData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<RFData>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pickerFor, setPickerFor] = useState<{ sourceId: string | null; replaceId?: string | null } | null>(null);
   const rf = useRef<any>(null);
-  const [scenarioName, setScenarioName] = useState<string>("New scenario");
+  const [scenarioName, setScenarioName] = useState<string>("Unnamed Scenario");
   const [editingName, setEditingName] = useState<boolean>(false);
 
   // --- Run/test/schedule state ---
@@ -514,6 +577,9 @@ function EditorShell() {
   const [showVersions, setShowVersions] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
+  // (reserved) flag for future selection suppression needs
+  const [savedId, setSavedId] = useState<string | null>(() => (scenarioId && scenarioId !== "new") ? scenarioId : null);
+  const suppressOpenRef = useRef(false);
 
   // --- Versions (snapshots) ---
   type Version = { id: string; name: string; ts: number; data: { nodes: Node<RFData>[]; edges: Edge<RFData>[]; name: string; notes: string; } };
@@ -535,7 +601,25 @@ function EditorShell() {
 
   // init with Initial node (centered)
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
+    // Prefer loading from shared store if an id is provided
+    if (scenarioId && scenarioId !== "new") {
+      try {
+        const existing = get(scenarioId);
+        if (existing?.graph) {
+          const { nodes: n, edges: e, name, notes } = existing.graph || {};
+          if (Array.isArray(n) && Array.isArray(e)) {
+            setNodes(n as Node<RFData>[]);
+            setEdges(e as Edge<RFData>[]);
+            if (typeof name === "string" && name.trim()) setScenarioName(name);
+            if (typeof notes === "string") setNotes(notes);
+            return;
+          }
+        }
+      } catch {}
+    }
+
+    // Fallback to local draft
+    const saved = (!scenarioId || scenarioId === "new") ? null : window.localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const { nodes: n, edges: e, name, notes } = JSON.parse(saved);
@@ -551,7 +635,9 @@ function EditorShell() {
     const cy = rect ? Math.max(0, Math.round(rect.height / 2 - NODE_H / 2)) : 180;
     const initial: Node<RFData> = { id: "initial", type: "initial", position: { x: cx, y: cy }, data: { label: "Start" } };
     setNodes([initial]);
-  }, [setNodes, setEdges]);
+    setEdges([] as any);
+    if (!scenarioId || scenarioId === "new") { setScenarioName("Unnamed Scenario"); setNotes(""); setSavedId(null); }
+  }, [setNodes, setEdges, scenarioId, get]);
 
   // autosave
   useEffect(() => {
@@ -564,10 +650,40 @@ function EditorShell() {
   }, [setEdges, nodes, edges]);
 
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedId) || null, [nodes, selectedId]);
-  const changeNode = (draft: Node<RFData>) => { pushUndo(nodes, edges); setNodes((nds) => (nds.map((n) => (n.id === draft.id ? { ...n, data: draft.data } : n)) as Node<RFData>[])); };
-  const deleteNode = (id: string) => { pushUndo(nodes, edges);
+  const changeNode = (draft: Node<RFData>) => { 
+    pushUndo(nodes, edges); 
+    setNodes((nds) => (nds.map((n) => (n.id === draft.id ? { ...n, data: draft.data } : n)) as Node<RFData>[])); 
+  };
+  const deleteNode = (id: string) => { 
+    // prevent selection-change handler from reopening drawer during deletion
+    suppressOpenRef.current = true;
+    pushUndo(nodes, edges);
     setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
-    setNodes((nds) => nds.filter((n) => n.id !== id) as Node<RFData>[]); if (selectedId === id) setSelectedId(null);
+    const newNodes = nodes.filter((n) => n.id !== id) as Node<RFData>[];
+    
+    // Auto-restore initial node if no nodes left
+    if (newNodes.length === 0) {
+      const rect = (rf.current as HTMLElement | null)?.getBoundingClientRect?.();
+      const cx = rect ? Math.max(0, Math.round(rect.width / 2 - NODE_W / 2)) : 240;
+      const cy = rect ? Math.max(0, Math.round(rect.height / 2 - NODE_H / 2)) : 180;
+      const initial: Node<RFData> = { id: "initial", type: "initial", position: { x: cx, y: cy }, data: { label: "Start" } };
+      setNodes([initial]);
+    } else {
+      setNodes(newNodes);
+    }
+    
+    if (selectedId === id) { setSelectedId(null); setDrawerOpen(false); }
+    // Auto-save on change using the computed post-delete state
+    const finalNodes = newNodes.length === 0 ? [
+      (()=>{ const rect = (rf.current as HTMLElement | null)?.getBoundingClientRect?.();
+        const cx = rect ? Math.max(0, Math.round(rect.width / 2 - NODE_W / 2)) : 240;
+        const cy = rect ? Math.max(0, Math.round(rect.height / 2 - NODE_H / 2)) : 180;
+        return { id: "initial", type: "initial", position: { x: cx, y: cy }, data: { label: "Start" } } as Node<RFData>; })()
+    ] : newNodes;
+    const finalEdges = edges.filter((x)=> finalNodes.some(n=> n.id===x.source) && finalNodes.some(n=> n.id===x.target));
+    setTimeout(() => handleSave({ nodes: finalNodes, edges: finalEdges }), 100);
+    // re-enable opening after state settles
+    setTimeout(() => { suppressOpenRef.current = false; }, 200);
   };
 
   // keyboard shortcuts
@@ -575,7 +691,13 @@ function EditorShell() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") { e.preventDefault(); handleUndo(); }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "y") { e.preventDefault(); handleRedo(); }
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedNode) { e.preventDefault(); deleteNode(selectedNode.id); }
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedNode) {
+        e.preventDefault();
+        const ok = window.confirm("Delete this node? This action cannot be undone.");
+        if (ok) {
+          deleteNode(selectedNode.id);
+        }
+      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); handleSave(); }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "enter") { e.preventDefault(); handleTestRun(); }
     };
@@ -583,8 +705,29 @@ function EditorShell() {
   }, [selectedNode, nodes, edges]);
 
   // --- Actions ---
-  function handleSave() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes, edges, name: scenarioName, notes }));
+  function handleSave(override?: { nodes: Node<RFData>[]; edges: Edge<RFData>[] }) {
+    // Save local draft
+    const draftNodes = override?.nodes ?? nodes;
+    const draftEdges = override?.edges ?? edges;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes: draftNodes, edges: draftEdges, name: scenarioName, notes }));
+
+    // Persist to shared scenarios store
+    const id = savedId ?? ((scenarioId && scenarioId !== "new") ? scenarioId : uid("scn"));
+    if (!savedId && (!scenarioId || scenarioId === "new")) setSavedId(id);
+    const modules = Math.max(0, draftNodes.filter(n=>n.type!=="initial").length);
+    const meta = modules > 0 ? `Manual · ${modules} module${modules===1?"":"s"}` : "Manual";
+    const record: Scenario = {
+      id,
+      title: scenarioName || "Untitled Scenario",
+      meta,
+      status: "stopped",
+      owner: "BC",
+      lastModified: humanAgo(new Date()),
+      updatedAt: new Date().toISOString(),
+      graph: { nodes: draftNodes, edges: draftEdges, name: scenarioName, notes },
+    };
+    save(record);
+
     setSavingFlash("Saved");
     setTimeout(()=>setSavingFlash(null), 1200);
   }
@@ -744,10 +887,28 @@ function EditorShell() {
             nodeTypes={nodeTypes}
             connectionMode={ConnectionMode.Loose}
             fitView
-            onPaneClick={() => { setSelectedId(null); setDrawerOpen(false); }}
+            onPaneClick={() => { /* keep inspector open; do nothing on canvas click */ }}
             onNodeClick={(_, n) => {
-              if (n.type === "initial") { setPickerFor({ sourceId: null, replaceId: n.id }); }
-              else { setSelectedId(n.id); setDrawerOpen(true); }
+              if (n.type === "initial") {
+                // Initial node does not use settings drawer; open function picker only
+                setPickerFor({ sourceId: null, replaceId: n.id });
+                return;
+              }
+              setSelectedId(n.id);
+              setDrawerOpen(true);
+            }}
+            onSelectionChange={(sel) => {
+              if (suppressOpenRef.current) return;
+              // If picker is open, ignore selection changes to avoid UI conflicts (white screen flicker)
+              if (pickerFor) return;
+              const first = (sel?.nodes && sel.nodes.length > 0) ? sel.nodes[0] : null;
+              if (!first) return; // do not clear selection on blank canvas clicks
+              if (first.type === "initial") return; // initial node has no settings drawer
+              // Only open drawer if selection actually changed
+              if (first.id !== selectedId) {
+                setSelectedId(first.id);
+                setDrawerOpen(true);
+              }
             }}
             proOptions={{ hideAttribution: true }}
           >
@@ -755,13 +916,18 @@ function EditorShell() {
             <div style={styles.headerOverlay as any}>
               <button aria-label="Back" onClick={() => window.history.back()} style={styles.backBtn as any}>
                 <span style={{ fontSize: 16 }}>↩︎</span><span>Back</span>
-              </button>
+          </button>
               {editingName ? (
-                <input autoFocus value={scenarioName} onChange={(e) => setScenarioName(e.target.value)}
-                  onBlur={() => setEditingName(false)} onKeyDown={(e) => { if (e.key === "Enter") setEditingName(false); }}
+                <input autoFocus value={scenarioName} onChange={(e) => {
+                  setScenarioName(e.target.value);
+                }}
+                  onBlur={() => { setEditingName(false); handleSave(); }} onKeyDown={(e) => { if (e.key === "Enter") { setEditingName(false); handleSave(); } }}
                   style={styles.nameInput as any}/>
               ) : (
-                <button title="Click to rename" onClick={() => setEditingName(true)} style={styles.nameBtn as any}>{scenarioName}</button>
+                <button title="Click to rename" onClick={() => setEditingName(true)} style={styles.nameBtn as any}>
+                  <span>{scenarioName}</span>
+                  <span style={{ marginLeft: 6, opacity: 0.6 }}>✏️</span>
+                </button>
               )}
               {savingFlash && <span style={{ marginLeft: 8, fontSize: 12, color: "#16a34a" }}>✔ {savingFlash}</span>}
             </div>
@@ -783,32 +949,37 @@ function EditorShell() {
             </div>
 
             {/* Bottom action bar (Make-like) */}
-            <div className="builder-bottom-bar">
+            <div className="builder-bottom-bar" style={{ flexDirection: "column", gap: 8, borderRadius: 20 }}>
+              {/* First row: Run controls */}
               <div style={styles.bottomGroup as any}>
                 <Tooltip text="Run once" id="run-once-btn">
-                  <button style={{ ...styles.pillBtn, background:"#ede9fe", borderColor:"#ddd6fe" } as any} onClick={handleRunOnce}>▶ Run once</button>
+                  <button style={{ ...styles.pillBtn, background:"#ede9fe", borderColor:"#ddd6fe", fontSize: 13, lineHeight: "18px" } as any} onClick={handleRunOnce}>▶ Run once</button>
                 </Tooltip>
                 <div style={styles.toggleWrap as any}>
                   <label style={{ display:"inline-flex",alignItems:"center",gap:6, cursor:"pointer" }}>
-                    <input type="checkbox" checked={scheduleEnabled} onChange={(e)=>setScheduleEnabled(e.target.checked)}/>
-                    <span>{scheduleEnabled ? "Scheduled" : "Every 15 minutes"}</span>
+                    <input type="checkbox" checked={scheduleEnabled} onChange={(e)=>{
+                      setScheduleEnabled(e.target.checked);
+                      // Auto-save when schedule changes
+                      setTimeout(() => handleSave(), 100);
+                    }}/>
+                    <span style={{ fontSize: 13, lineHeight: "18px" }}>{scheduleEnabled ? "Scheduled" : "Every 15 min"}</span>
                   </label>
                   {scheduleEnabled && (
-                    <select value={interval} onChange={(e)=>setIntervalStr(e.target.value as any)} style={{ border:"1px solid #e5e7eb", borderRadius:8, padding:"4px 6px", fontSize:12, background:"#fff" }}>
+                    <select value={interval} onChange={(e)=>{
+                      setIntervalStr(e.target.value as any);
+                      // Auto-save when schedule changes
+                      setTimeout(() => handleSave(), 100);
+                    }} style={{ border:"1px solid #e5e7eb", borderRadius:8, padding:"4px 6px", fontSize:12, background:"#fff" }}>
                       <option value="15m">Every 15 min</option>
                       <option value="1h">Every hour</option>
                       <option value="1d">Daily</option>
                     </select>
                   )}
                 </div>
-              </div>
+                  </div>
 
-              <div style={styles.divider as any} />
-
+              {/* Second row: Action icons */}
               <div style={styles.bottomGroup as any}>
-                <Tooltip text="Save" id="save-btn">
-                  <button style={styles.tinyBtn as any} onClick={handleSave}>💾</button>
-                </Tooltip>
                 <Tooltip text="Auto-align" id="auto-align-btn">
                   <button style={styles.tinyBtn as any} onClick={autoAlign}>🧲</button>
                 </Tooltip>
@@ -816,7 +987,7 @@ function EditorShell() {
                   <button style={styles.tinyBtn as any} onClick={()=>setShowExplain(true)}>💡</button>
                 </Tooltip>
                 <Tooltip text="Scenario I/O" id="io-btn">
-                  <button style={styles.tinyBtn as any} onClick={()=>setShowIO(true)}>📥📤</button>
+                  <button style={styles.tinyBtn as any} onClick={()=>setShowIO(true)}>📥</button>
                 </Tooltip>
                 <Tooltip text="Settings" id="settings-btn">
                   <button style={styles.tinyBtn as any} onClick={()=>setShowSettings(true)}>⚙️</button>
@@ -840,7 +1011,7 @@ function EditorShell() {
                         <input type="file" accept="application/json" style={{ display:"none" }}
                                onChange={(e)=>{ const f=e.target.files?.[0]; if(f){ setMenuOpen(false); importBlueprint(f);} }} />
                       </label>
-                    </div>
+                  </div>
                   )}
                 </div>
               </div>
@@ -855,7 +1026,13 @@ function EditorShell() {
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         {selectedNode ? (
-          <InspectorBody node={selectedNode as Node<RFData>} onChangeNode={changeNode} onDeleteNode={deleteNode} />
+          <InspectorBody 
+            node={selectedNode as Node<RFData>} 
+            onChangeNode={changeNode} 
+          onDeleteNode={(id)=>{ deleteNode(id); setSelectedId(null); setDrawerOpen(false); }} 
+            onSave={() => { handleSave(); setDrawerOpen(false); }}
+            onClose={() => setDrawerOpen(false)}
+          />
         ) : (
           <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: 14 }}>
             Select a node
@@ -884,6 +1061,8 @@ function EditorShell() {
           setNodes((nds) => (nds.concat(newNode) as Node<RFData>[]));
           if (srcId) setEdges((eds) => addEdge({ id: uid("e"), source: srcId, target: id, markerEnd: { type: MarkerType.ArrowClosed }, animated: true }, eds));
           setPickerFor(null); setSelectedId(id); setDrawerOpen(true);
+          // Auto-save when new node is added
+          setTimeout(() => handleSave(), 100);
         }}
         onClose={() => setPickerFor(null)}
         initialCategory="apps"
@@ -915,15 +1094,25 @@ function EditorShell() {
           <div style={{ fontSize:13 }}>
             <div style={{ marginBottom:10 }}>
               <div style={styles.formLabel}>Scenario name</div>
-              <input style={styles.input} value={scenarioName} onChange={(e)=>setScenarioName(e.target.value)} />
+              <input style={styles.input} value={scenarioName} onChange={(e)=>{
+                setScenarioName(e.target.value);
+              }} onBlur={()=>handleSave()} />
             </div>
             <div style={{ marginBottom:10 }}>
               <label style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <input type="checkbox" checked={scheduleEnabled} onChange={(e)=>setScheduleEnabled(e.target.checked)} />
+                <input type="checkbox" checked={scheduleEnabled} onChange={(e)=>{
+                  setScheduleEnabled(e.target.checked);
+                  // Auto-save when schedule changes
+                  setTimeout(() => handleSave(), 100);
+                }} />
                 <span>Enable schedule</span>
               </label>
               {scheduleEnabled && (
-                <select value={interval} onChange={(e)=>setIntervalStr(e.target.value as any)} style={{ ...styles.select, width:160 } as any}>
+                <select value={interval} onChange={(e)=>{
+                  setIntervalStr(e.target.value as any);
+                  // Auto-save when schedule changes
+                  setTimeout(() => handleSave(), 100);
+                }} style={{ ...styles.select, width:160 } as any}>
                   <option value="15m">Every 15 minutes</option>
                   <option value="1h">Every hour</option>
                   <option value="1d">Daily</option>
@@ -942,7 +1131,7 @@ function EditorShell() {
             style={{ width:"100%", border:"1px solid #e5e7eb", borderRadius:8, padding:10, fontSize:13 }} placeholder="Write notes for collaborators…" />
           <div style={{ marginTop:8, display:"flex", justifyContent:"flex-end", gap:8 }}>
             <button style={styles.tinyBtn as any} onClick={()=>setNotes("")}>Clear</button>
-            <button style={styles.tinyBtn as any} onClick={handleSave}>Save</button>
+            <button style={styles.tinyBtn as any} onClick={()=>handleSave()}>Save</button>
           </div>
         </Modal>
       )}
@@ -953,7 +1142,7 @@ function EditorShell() {
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
             <div style={{ fontSize:13, color:"#374151" }}>Local snapshots (max 20)</div>
             <button style={styles.tinyBtn as any} onClick={snapshotVersion}>Create snapshot</button>
-          </div>
+                </div>
           <div style={{ display:"grid", gap:8 }}>
             {versions.length===0 && <div style={{ fontSize:13, color:"#6b7280" }}>No versions yet.</div>}
             {versions.map(v=>(
