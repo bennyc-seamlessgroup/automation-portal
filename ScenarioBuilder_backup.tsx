@@ -264,7 +264,7 @@ const styles = {
 
   /* Bottom action bar (Make-like) */
   bottomBar: {
-    position: "absolute" as const, left: "50%", transform: "translateX(-50%)", bottom: 80, zIndex: 10,
+    position: "absolute" as const, left: "50%", transform: "translateX(-50%)", bottom: 12, zIndex: 10,
     background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: 8, boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
     display: "flex", alignItems: "center", gap: 10,
   },
@@ -946,13 +946,6 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
     return () => window.removeEventListener(ADD_NEXT_EVENT, onAddNext as EventListener);
   }, []);
 
-  // Prevent auto-opening drawer on initial load
-  useEffect(() => {
-    suppressOpenRef.current = true;
-    // Re-enable opening after state settles
-    setTimeout(() => { suppressOpenRef.current = false; }, 200);
-  }, []);
-
   // init with Initial node (centered)
   useEffect(() => {
     // Add initial log entry
@@ -1403,22 +1396,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
             </div>
 
             {/* Bottom action bar (Make-like) */}
-            <div className="builder-bottom-bar" style={{ 
-              position: "absolute", 
-              left: "50%", 
-              transform: "translateX(-50%)", 
-              bottom: 70, 
-              zIndex: 10,
-              background: "#fff", 
-              border: "1px solid #e5e7eb", 
-              borderRadius: 8, 
-              padding: 8, 
-              boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
-              display: "flex", 
-              flexDirection: "column", 
-              gap: 8,
-              alignItems: "center"
-            }}>
+            <div className="builder-bottom-bar" style={{ flexDirection: "column", gap: 8, borderRadius: 20 }}>
               {/* First row: Run controls */}
               <div style={styles.bottomGroup as any}>
                 <Tooltip text="Run once" id="run-once-btn">
@@ -1499,20 +1477,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
             </div>
 
             <Background gap={24} />
-            <MiniMap 
-              pannable 
-              zoomable 
-              style={{
-                bottom:60,
-                right: 12
-              }}
-            />
-            <Controls 
-              style={{
-                bottom: 60,
-                left: 12
-              }}
-            />
+            <MiniMap pannable zoomable />
+            <Controls />
           </ReactFlow>
         </div>
       </div>
@@ -1745,7 +1711,7 @@ function LogWindow({
     <div style={{
       position: "fixed",
       bottom: 0,
-      left: "64px", // Account for collapsed sidebar width
+      left: 0,
       right: 0,
       height: isOpen ? "300px" : "40px",
       background: "#fff",

@@ -1,0 +1,17 @@
+name: DeepSeek Only
+version: 1.0.0
+schema: v1
+
+models:
+  - name: deepseek-coder
+    provider: ollama
+    model: deepseek-coder-v2:lite
+    apiBase: http://localhost:11434
+    maxTokens: 512
+    temperature: 0.2
+
+tabAutocompleteModel:
+  name: deepseek-coder
+  provider: ollama
+  model: deepseek-coder-v2:lite
+  apiBase: http://localhost:11434
