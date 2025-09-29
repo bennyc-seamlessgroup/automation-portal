@@ -295,177 +295,7 @@ function categoryOf(appKey: AppKey): CategoryKey {
   }
 }
 
-/** AUTOSAVE HOOK */
-function useAutosave<T extends Record<string, any>>(
-  data: T,
-  saveFn: (data: T) => void,
-  delay: number = 1000
-) {
-  const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const previousDataRef = useRef<string>("");
-
-  const scheduleSave = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    timeoutRef.current = setTimeout(() => {
-      setIsSaving(true);
-      saveFn(data);
-      setLastSaved(new Date());
-      setIsSaving(false);
-      timeoutRef.current = null;
-    }, delay);
-  }, [data, saveFn, delay]);
-
-  // Check if data has actually changed
-  const dataString = JSON.stringify(data);
-  useEffect(() => {
-    if (dataString !== previousDataRef.current) {
-      previousDataRef.current = dataString;
-      scheduleSave();
-    }
-  }, [dataString, scheduleSave]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  return { isSaving, lastSaved, scheduleSave: () => scheduleSave() };
-}
-
-/* ──────────────────────────────────────────────────────────────────────────
-   DEBUG HELPERS
-   - emitDebugPayload: dispatches a debug event with payload data
-   - DebugPayloadUI: bottom-center toggle + modal to preview JSON payloads
-   ────────────────────────────────────────────────────────────────────────── */
-type DebugEvent = { action: string; payload: Record<string, unknown>; ts: string };
-
-function emitDebugPayload(action: string, payload: Record<string, unknown>) {
-  window.dispatchEvent(
-    new CustomEvent("__debug_payload__", {
-      detail: { action, payload, ts: new Date().toISOString() } as DebugEvent,
-    })
-  );
-}
-
-/** UI for showing backend payload previews (toggle + modal) */
-function DebugPayloadUI() {
-  const STORAGE_KEY = "debugPayloadEnabled";
-  const [enabled, setEnabled] = useState<boolean>(() => {
-    try { return localStorage.getItem(STORAGE_KEY) !== "0"; } catch { return true; }
-  });
-  const [open, setOpen] = useState(false);
-  const [event, setEvent] = useState<DebugEvent | null>(null);
-
-  useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, enabled ? "1" : "0"); } catch {}
-  }, [enabled]);
-
-  useEffect(() => {
-    const onDebug = (e: Event) => {
-      if (!enabled) return;
-      const ce = e as CustomEvent<DebugEvent>;
-      setEvent(ce.detail);
-      setOpen(true);
-      // eslint-disable-next-line no-console
-      console.log("[DEBUG-PAYLOAD]", ce.detail);
-    };
-    window.addEventListener("__debug_payload__", onDebug as EventListener);
-    return () => window.removeEventListener("__debug_payload__", onDebug as EventListener);
-  }, [enabled]);
-
-  const copy = async () => {
-    if (!event) return;
-    const json = JSON.stringify(event, null, 2);
-    try {
-      await navigator.clipboard.writeText(json);
-      alert("Copied JSON to clipboard.");
-    } catch {
-      alert("Copy failed. Please copy manually.");
-    }
-  };
-
-  return (
-    <>
-      {/* Bottom-center toggle */}
-      <div
-        className="position-fixed bottom-0 start-50 translate-middle-x mb-3"
-        style={{ zIndex: 1061, pointerEvents: "none" }}
-      >
-        <div
-          className="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill shadow-sm border bg-white"
-          style={{ pointerEvents: "auto" }}
-        >
-          <small className="text-secondary">Payload Preview</small>
-          <button
-            className={`btn btn-sm ${enabled ? "btn-dark" : "btn-outline-dark"}`}
-            onClick={() => setEnabled((v) => !v)}
-            title="Toggle payload preview"
-          >
-            {enabled ? "On" : "Off"}
-          </button>
-        </div>
-      </div>
-
-      {/* Modal */}
-      {open && event && (
-        <div
-          className="position-fixed top-0 start-0 w-100 h-100"
-          style={{ background: "rgba(0,0,0,0.45)", zIndex: 1062 }}
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="card shadow"
-            style={{
-              width: "min(860px, 96vw)",
-              maxHeight: "80vh",
-              overflow: "hidden",
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="card-header d-flex justify-content-between align-items-center">
-              <div>
-                <div className="fw-semibold">Backend Payload Preview</div>
-                <small className="text-secondary">
-                  Action: <span className="fw-semibold">{event.action}</span> ·{" "}
-                  {new Date(event.ts).toLocaleString()}
-                </small>
-              </div>
-              <div className="d-flex align-items-center gap-2">
-                <button className="btn btn-outline-dark btn-sm" onClick={copy}>
-                  Copy JSON
-                </button>
-                <button className="btn btn-dark btn-sm" onClick={() => setOpen(false)}>
-                  Close
-                </button>
-              </div>
-            </div>
-            <div className="card-body p-0" style={{ background: "#f8fafc" }}>
-              <pre className="m-0 p-3" style={{ maxHeight: "60vh", overflow: "auto", fontSize: 12 }}>
-                {JSON.stringify(event, null, 2)}
-              </pre>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
+/** NODE SHELL */
 function NodeShell({ id, color, label, children, showPlus = true, selected = false }: {
   id: string; color?: string; label: string; children?: React.ReactNode; showPlus?: boolean; selected?: boolean;
 }) {
@@ -532,10 +362,12 @@ function Drawer({ open, children, onClose, title = "Settings" }: { open: boolean
     </div>
   );
 }
-function InspectorBody({ node, onChangeNode, onDeleteNode }: { 
+function InspectorBody({ node, onChangeNode, onDeleteNode, onSave, onClose }: { 
   node: Node<RFData>; 
   onChangeNode: (n: Node<RFData>) => void; 
   onDeleteNode: (id: string) => void; 
+  onSave: () => void;
+  onClose: () => void;
 }) {
   const isApp = node.type === "app";
   const data = (node.data || {}) as RFData;
@@ -547,9 +379,24 @@ function InspectorBody({ node, onChangeNode, onDeleteNode }: {
 
   return (
     <>
-      {/* Header without close button */}
+      {/* Header with close button */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Node Settings</h3>
+        <button 
+          onClick={onClose}
+          style={{ 
+            background: "transparent", 
+            border: "none", 
+            fontSize: 18, 
+            cursor: "pointer", 
+            color: "#6b7280",
+            padding: "4px 8px",
+            borderRadius: 4
+          }}
+          title="Close"
+        >
+          ×
+        </button>
       </div>
 
       {/* Tab Navigation */}
@@ -632,6 +479,18 @@ function InspectorBody({ node, onChangeNode, onDeleteNode }: {
               }}
             >
               Delete node
+            </button>
+            <button 
+              style={{ 
+                ...styles.delBtn, 
+                background: "#059669", 
+                color: "white", 
+                border: "1px solid #059669",
+                flex: 1
+              }} 
+              onClick={onSave}
+            >
+              Save changes
             </button>
           </div>
         </>
@@ -1014,7 +873,6 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [interval, setIntervalStr] = useState<"15m" | "1h" | "1d">("15m");
   const [savingFlash, setSavingFlash] = useState<null | string>(null);
-  const [autosaveStatus, setAutosaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
 
   // --- Notes / settings / IO modals ---
   const [notes, setNotes] = useState<string>("");
@@ -1142,73 +1000,10 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
     if (!scenarioId || scenarioId === "new") { setScenarioName("Unnamed Scenario"); setNotes(""); setSavedId(null); }
   }, [setNodes, setEdges, scenarioId, get]);
 
-  // Unified save function for autosave
-  const unifiedSave = useCallback((data: { nodes: Node<RFData>[]; edges: Edge<RFData>[]; name: string; notes: string }) => {
-    const { nodes, edges, name, notes } = data;
-    
-    // Save local draft
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-
-    // Persist to shared scenarios store
-    const id = savedId ?? ((scenarioId && scenarioId !== "new") ? scenarioId : uid("scn"));
-    if (!savedId && (!scenarioId || scenarioId === "new")) setSavedId(id);
-    const modules = Math.max(0, nodes.filter(n=>n.type!=="initial").length);
-    const meta = modules > 0 ? `Auto-saved · ${modules} module${modules===1?"":"s"}` : "Auto-saved";
-    const record: Scenario = {
-      id,
-      title: name || "Untitled Scenario",
-      meta,
-      status: "stopped",
-      owner: "BC",
-      lastModified: humanAgo(new Date()),
-      updatedAt: new Date().toISOString(),
-      graph: { nodes, edges, name, notes },
-    };
-    save(record);
-
-    // Log the save action
-    addLogEntry("success", `Auto-saved: ${name}`, { 
-      nodeCount: nodes.length, 
-      edgeCount: edges.length,
-      scenarioId: id 
-    });
-
-    setSavingFlash("Auto-saved");
-    setTimeout(() => setSavingFlash(null), 1200);
-    setAutosaveStatus("saved");
-    
-    // Debug payload for autosave
-    emitDebugPayload("scenarioBuilder.save.autosave", {
-      scenarioId: id,
-      scenarioName: name,
-      nodeCount: nodes.length,
-      edgeCount: edges.length,
-      modules
-    });
-  }, [savedId, scenarioId, save]);
-
-  // Setup autosave for all data changes
-  const scenarioData = useMemo(() => ({ 
-    nodes, 
-    edges, 
-    name: scenarioName, 
-    notes 
-  }), [nodes, edges, scenarioName, notes]);
-
-  const { isSaving: isAutosaving, lastSaved: lastAutosaveTime } = useAutosave(
-    scenarioData,
-    unifiedSave,
-    2000 // 2 second debounce
-  );
-
-  // Update autosave status
+  // autosave
   useEffect(() => {
-    if (isAutosaving) {
-      setAutosaveStatus("saving");
-    } else if (lastAutosaveTime) {
-      setAutosaveStatus("saved");
-    }
-  }, [isAutosaving, lastAutosaveTime]);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes, edges, name: scenarioName, notes }));
+  }, [nodes, edges, scenarioName, notes]);
 
   const onConnect: OnConnect = useCallback((params: Connection) => {
     pushUndo(nodes, edges);
@@ -1225,17 +1020,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
       targetId: params.target,
       edgeId: uid("e")
     });
-    
-    // Debug payload for edge creation
-    emitDebugPayload("scenarioBuilder.edge.create", {
-      sourceId: params.source,
-      targetId: params.target,
-      edgeId: uid("e"),
-      sourceName,
-      targetName,
-      scenarioId
-    });
-  }, [setEdges, nodes, edges, scenarioId]);
+  }, [setEdges, nodes, edges]);
 
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedId) || null, [nodes, selectedId]);
   
@@ -1250,14 +1035,6 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
     setNodes((nds) => (nds.map((n) => (n.id === draft.id ? { ...n, data: draft.data } : n)) as Node<RFData>[])); 
     // Check if changes were made
     setHasUnsavedChanges(checkForChanges(draft.data as RFData));
-    
-    // Debug payload for node changes
-    emitDebugPayload("scenarioBuilder.node.change", { 
-      nodeId: draft.id, 
-      nodeType: draft.type, 
-      nodeData: draft.data,
-      scenarioId 
-    });
   };
   
   // Handle closing drawer with save prompt
@@ -1271,6 +1048,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
         cancelText: "Discard",
         confirmStyle: "primary",
         onConfirm: () => {
+          handleSave();
           setDrawerOpen(false);
           setHasUnsavedChanges(false);
           setOriginalNodeData(null);
@@ -1315,14 +1093,6 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
     // Log the deletion
     addLogEntry("warning", `Deleted node: ${nodeName}`, { nodeId: id, nodeType: nodeToDelete?.type });
     
-    // Debug payload for node deletion
-    emitDebugPayload("scenarioBuilder.node.delete", {
-      nodeId: id,
-      nodeName,
-      nodeType: nodeToDelete?.type,
-      scenarioId
-    });
-    
     // Auto-save on change using the computed post-delete state
     const finalNodes = newNodes.length === 0 ? [
       (()=>{ const rect = (rf.current as HTMLElement | null)?.getBoundingClientRect?.();
@@ -1363,7 +1133,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
           }
         });
       }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); /* Auto-save is now automatic */ }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); handleSave(); }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "enter") { e.preventDefault(); handleTestRun(); }
     };
     window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey);
@@ -1402,18 +1172,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
     setSavingFlash("Saved");
     setTimeout(()=>setSavingFlash(null), 1200);
-    
-    // Debug payload for manual save
-    emitDebugPayload("scenarioBuilder.save.manual", {
-      scenarioId: id,
-      scenarioName,
-      nodeCount: draftNodes.length,
-      edgeCount: draftEdges.length,
-      modules
-    });
   }
   function handleTestRun() {
-    emitDebugPayload("scenarioBuilder.test.start", { nodeCount: nodes.length, edgeCount: edges.length, scenarioId });
     addLogEntry("info", "Test run started", { nodeCount: nodes.length, edgeCount: edges.length });
     alert("Test run: this would execute in dry-run mode.\n(Stub) Nodes: " + nodes.length + ", Edges: " + edges.length);
     addLogEntry("success", "Test run completed", { nodeCount: nodes.length, edgeCount: edges.length });
@@ -1577,7 +1337,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
             nodeTypes={nodeTypes}
             connectionMode={ConnectionMode.Loose}
             fitView
-            onPaneClick={() => { setDrawerOpen(false); /* Close drawer when clicking empty canvas */ }}
+            onPaneClick={() => { /* keep inspector open; do nothing on canvas click */ }}
             onNodeClick={(_, n) => {
               if (n.type === "initial") {
                 // Initial node does not use settings drawer; open function picker only
@@ -1615,7 +1375,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                 <input autoFocus value={scenarioName} onChange={(e) => {
                   setScenarioName(e.target.value);
                 }}
-                  onBlur={() => { setEditingName(false); }} onKeyDown={(e) => { if (e.key === "Enter") { setEditingName(false); } }}
+                  onBlur={() => { setEditingName(false); handleSave(); }} onKeyDown={(e) => { if (e.key === "Enter") { setEditingName(false); handleSave(); } }}
                   style={styles.nameInput as any}/>
               ) : (
                 <button title="Click to rename" onClick={() => setEditingName(true)} style={styles.nameBtn as any}>
@@ -1762,27 +1522,29 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
           <InspectorBody 
             node={selectedNode as Node<RFData>} 
             onChangeNode={changeNode} 
-            onDeleteNode={(id)=>{ 
-              setConfirmDialog({
-                open: true,
-                title: "Delete Node",
-                message: "Are you sure you want to delete this node? This action cannot be undone.",
-                confirmText: "Delete",
-                cancelText: "Cancel",
-                confirmStyle: "danger",
-                onConfirm: () => {
-                  deleteNode(id);
-                  setSelectedId(null);
-                  setDrawerOpen(false);
-                  setHasUnsavedChanges(false);
-                  setOriginalNodeData(null);
-                  setConfirmDialog({ ...confirmDialog, open: false });
-                },
-                onCancel: () => {
-                  setConfirmDialog({ ...confirmDialog, open: false });
-                }
-              });
-            }} 
+          onDeleteNode={(id)=>{ 
+            setConfirmDialog({
+              open: true,
+              title: "Delete Node",
+              message: "Are you sure you want to delete this node? This action cannot be undone.",
+              confirmText: "Delete",
+              cancelText: "Cancel",
+              confirmStyle: "danger",
+              onConfirm: () => {
+                deleteNode(id);
+                setSelectedId(null);
+                setDrawerOpen(false);
+                setHasUnsavedChanges(false);
+                setOriginalNodeData(null);
+                setConfirmDialog({ ...confirmDialog, open: false });
+              },
+              onCancel: () => {
+                setConfirmDialog({ ...confirmDialog, open: false });
+              }
+            });
+          }} 
+            onSave={() => { handleSave(); setDrawerOpen(false); setHasUnsavedChanges(false); setOriginalNodeData(null); }}
+            onClose={handleCloseDrawer}
           />
         ) : (
           <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: 14 }}>
@@ -1823,15 +1585,6 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
           setPickerFor(null); setSelectedId(id); setDrawerOpen(true);
           // Auto-save when new node is added
           setTimeout(() => handleSave(), 100);
-          
-          // Debug payload for node creation
-          emitDebugPayload("scenarioBuilder.node.create", {
-            nodeId: id,
-            nodeName: spec.name,
-            appKey: key,
-            connectedFrom: srcId,
-            scenarioId
-          });
         }}
         onClose={() => setPickerFor(null)}
         initialCategory="apps"
@@ -1865,9 +1618,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
               <div style={styles.formLabel}>Scenario name</div>
               <input style={styles.input} value={scenarioName} onChange={(e)=>{
                 setScenarioName(e.target.value);
-                // Auto-save when scenario name changes
-                setTimeout(() => handleSave(), 100);
-              }} />
+              }} onBlur={()=>handleSave()} />
             </div>
             <div style={{ marginBottom:10 }}>
               <label style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -1953,9 +1704,6 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
         onConfirm={confirmDialog.onConfirm}
         onCancel={confirmDialog.onCancel}
       />
-
-      {/* Debug UI */}
-      <DebugPayloadUI />
     </div>
   );
 }

@@ -525,17 +525,6 @@ function ListView({
                   >
                     {s.title}
                   </button>
-                  <div
-                    className="text-secondary small"
-                    style={{
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                    title={s.meta}
-                  >
-                    {s.meta}
-                  </div>
                 </td>
 
                 {/* BEAUTIFIED APPS CELL */}
