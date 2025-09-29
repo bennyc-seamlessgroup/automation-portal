@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 // @ts-ignore – attach a global helper for convenience
 (window as any).emitDebug = (action: string, payload: Record<string, unknown>) =>

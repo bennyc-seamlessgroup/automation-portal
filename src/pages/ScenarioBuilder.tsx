@@ -303,7 +303,7 @@ function useAutosave<T extends Record<string, any>>(
 ) {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousDataRef = useRef<string>("");
 
   const scheduleSave = useCallback(() => {
@@ -1014,7 +1014,6 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [interval, setIntervalStr] = useState<"15m" | "1h" | "1d">("15m");
   const [savingFlash, setSavingFlash] = useState<null | string>(null);
-  const [autosaveStatus, setAutosaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
 
   // --- Notes / settings / IO modals ---
   const [notes, setNotes] = useState<string>("");
@@ -1175,7 +1174,6 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
     setSavingFlash("Auto-saved");
     setTimeout(() => setSavingFlash(null), 1200);
-    setAutosaveStatus("saved");
     
     // Debug payload for autosave
     emitDebugPayload("scenarioBuilder.save.autosave", {
@@ -1203,11 +1201,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
   // Update autosave status
   useEffect(() => {
-    if (isAutosaving) {
-      setAutosaveStatus("saving");
-    } else if (lastAutosaveTime) {
-      setAutosaveStatus("saved");
-    }
+    // Visual feedback is handled by savingFlash state
   }, [isAutosaving, lastAutosaveTime]);
 
   const onConnect: OnConnect = useCallback((params: Connection) => {
