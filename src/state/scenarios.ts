@@ -1,15 +1,8 @@
 // src/state/scenarios.ts
-export type Status = "running" | "stopped" | "error";
-export type Scenario = {
-  id: string;
-  title: string;
-  meta: string;
-  status: Status;
-  owner: string;        // initials
-  lastModified: string; // human time
-  updatedAt?: string;   // ISO timestamp (new)
-  graph?: any;          // whatever ScenarioBuilder saves (nodes/edges/settings)
-};
+import type { Scenario, ScenarioStatus } from "../types/scenarios";
+
+// Re-export for backward compatibility
+export type { Scenario, ScenarioStatus };
 
 const KEY = "ap.scenarios.v1";
 

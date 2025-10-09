@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, useState, useCallback, useEffect } from "react";
-import type { Scenario } from "./scenarios";
+import type { Scenario } from "../types/scenarios";
 import { listScenarios, upsertScenario, deleteScenario, getScenario } from "./scenarios";
 
 type Ctx = {

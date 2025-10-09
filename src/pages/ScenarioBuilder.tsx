@@ -19,8 +19,7 @@ import ReactFlow, {
 import type { Node, Edge, Connection } from "reactflow";
 import "reactflow/dist/style.css";
 import { useScenarios } from "../state/ScenariosContext";
-import type { Scenario } from "../state/scenarios";
-import { humanAgo } from "../state/scenarios";
+import type { Scenario } from "../types/scenarios";
 
 /** TYPES */
 type CategoryKey = "apps" | "ai" | "flow" | "utilities" | "products" | "custom";
@@ -1164,7 +1163,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
       meta,
       status: "stopped",
       owner: "BC",
-      lastModified: humanAgo(new Date()),
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       graph: { nodes, edges, name, notes },
     };
@@ -1531,7 +1530,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
       meta,
       status: "stopped",
       owner: "BC",
-      lastModified: humanAgo(new Date()),
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       graph: { nodes: draftNodes, edges: draftEdges, name: scenarioName, notes },
     };
