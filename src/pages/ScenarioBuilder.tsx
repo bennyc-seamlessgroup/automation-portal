@@ -211,7 +211,6 @@ const APP_CATALOG: AppSpec[] = [
   ]},
 ];
 
-const STORAGE_KEY = "automationPortal.scenarioBuilder.initialNode.v5";
 const VERSIONS_KEY = "automationPortal.scenarioBuilder.versions";
 
 /** STYLES */
@@ -1124,18 +1123,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
       } catch {}
     }
 
-    // Fallback to local draft
-    const saved = (!scenarioId || scenarioId === "new") ? null : window.localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const { nodes: n, edges: e, name, notes } = JSON.parse(saved);
-        if (Array.isArray(n) && n.length > 0) {
-          setNodes(n as Node<RFData>[]); setEdges(e as Edge<RFData>[]); if (typeof name === "string" && name.trim()) setScenarioName(name);
-          if (typeof notes === "string") setNotes(notes);
-          return;
-        }
-      } catch {}
-    }
+    // Fallback to local draft - REMOVE this old localStorage approach (no longer needed with unified service)
     const rect = (rf.current as HTMLElement | null)?.getBoundingClientRect?.();
     const cx = rect ? Math.max(0, Math.round(rect.width / 2 - NODE_W / 2)) : 240;
     const cy = rect ? Math.max(0, Math.round(rect.height / 2 - NODE_H / 2)) : 180;
@@ -1148,9 +1136,9 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
   // Unified save function for autosave
   const unifiedSave = useCallback((data: { nodes: Node<RFData>[]; edges: Edge<RFData>[]; name: string; notes: string }) => {
     const { nodes, edges, name, notes } = data;
-    
-    // Save local draft
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+    // Save local draft - REMOVE this old localStorage approach
+    // localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
     // Persist to shared scenarios store
     const id = savedId ?? ((scenarioId && scenarioId !== "new") ? scenarioId : uid("scn"));
@@ -1514,15 +1502,12 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
   // --- Actions ---
   function handleSave(override?: { nodes: Node<RFData>[]; edges: Edge<RFData>[] }) {
-    // Save local draft
-    const draftNodes = override?.nodes ?? nodes;
-    const draftEdges = override?.edges ?? edges;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes: draftNodes, edges: draftEdges, name: scenarioName, notes }));
-
     // Persist to shared scenarios store
     const id = savedId ?? ((scenarioId && scenarioId !== "new") ? scenarioId : uid("scn"));
     if (!savedId && (!scenarioId || scenarioId === "new")) setSavedId(id);
-    const modules = Math.max(0, draftNodes.filter(n=>n.type!=="initial").length);
+    const currentNodes = override?.nodes ?? nodes;
+    const currentEdges = override?.edges ?? edges;
+    const modules = Math.max(0, currentNodes.filter(n=>n.type!=="initial").length);
     const meta = modules > 0 ? `Manual · ${modules} module${modules===1?"":"s"}` : "Manual";
     const record: Scenario = {
       id,
@@ -1532,14 +1517,14 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
       owner: "BC",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      graph: { nodes: draftNodes, edges: draftEdges, name: scenarioName, notes },
+      graph: { nodes: currentNodes, edges: currentEdges, name: scenarioName, notes },
     };
     save(record);
 
     // Log the save action
     addLogEntry("success", `Scenario saved: ${scenarioName}`, { 
-      nodeCount: draftNodes.length, 
-      edgeCount: draftEdges.length,
+      nodeCount: currentNodes.length, 
+      edgeCount: currentEdges.length,
       scenarioId: id 
     });
 
@@ -1550,15 +1535,15 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
     emitDebugPayload("scenarioBuilder.save.manual", {
       scenarioId: id,
       scenarioName,
-      nodeCount: draftNodes.length,
-      edgeCount: draftEdges.length,
+      nodeCount: currentNodes.length,
+      edgeCount: currentEdges.length,
       modules,
       // Full state snapshot for backend persistence
       fullState: {
         scenarioId: id,
         scenarioName,
         notes,
-        nodes: draftNodes.map(n => ({
+        nodes: currentNodes.map((n: Node<RFData>) => ({
           id: n.id,
           type: n.type,
           position: n.position,
@@ -1566,7 +1551,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
           selected: n.selected,
           dragging: n.dragging
         })),
-        edges: draftEdges.map(e => ({
+        edges: currentEdges.map((e: Edge<RFData>) => ({
           id: e.id,
           source: e.source,
           target: e.target,
