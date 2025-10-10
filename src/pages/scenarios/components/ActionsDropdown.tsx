@@ -1,11 +1,11 @@
-import { useScenarios } from "../../../state/ScenariosContext";
+import { useScenarios } from "../../../state";
 import type { Scenario } from "../../../types/scenarios";
 import { emitDebugPayload } from "../debug/DebugPayloadUI";
 
 export default function ActionsDropdown({ scenarioId, onDelete }: { scenarioId?: string; onDelete?: () => void }) {
   const { get, save } = useScenarios();
 
-  const rename = () => {
+  const rename = async () => {
     if (!scenarioId) {
       console.error("No scenarioId provided to rename function");
       return;
@@ -18,86 +18,97 @@ export default function ActionsDropdown({ scenarioId, onDelete }: { scenarioId?:
     console.log("Stored scenarios in localStorage:", storedScenarios ? JSON.parse(storedScenarios) : "None");
     console.log("Scenario ID being searched:", scenarioId);
 
-    const s = get(scenarioId);
-
-    if (!s) {
-      console.error("Scenario not found:", scenarioId);
-      console.log("Available scenario IDs in localStorage:", storedScenarios ?
-        JSON.parse(storedScenarios).map((sc: any) => sc.id) : "None");
-      alert("Scenario not found. Please refresh the page and try again.");
-      return;
-    }
-
-    console.log("Found scenario:", s.title);
-    const nextTitle = window.prompt("Rename scenario", s.title || "Untitled Scenario");
-
-    if (nextTitle == null) {
-      console.log("Rename cancelled by user");
-      return; // cancelled
-    }
-
-    const newTitle = nextTitle.trim();
-    if (!newTitle || newTitle === s.title) {
-      console.log("No changes needed for rename");
-      return;
-    }
-
-    console.log("Renaming from", s.title, "to", newTitle);
-    const updated = {
-      ...s,
-      title: newTitle,
-      graph: s.graph ? { ...s.graph, name: newTitle } : s.graph,
-    };
-
     try {
-      save(updated);
-      console.log("Scenario renamed successfully");
-      emitDebugPayload("scenarios.rename", { scenarioId, title: newTitle });
+      const s = await get(scenarioId);
+
+      if (!s) {
+        console.error("Scenario not found:", scenarioId);
+        console.log("Available scenario IDs in localStorage:", storedScenarios ?
+          JSON.parse(storedScenarios).map((sc: { id: string }) => sc.id) : "None");
+        alert("Scenario not found. Please refresh the page and try again.");
+        return;
+      }
+
+      console.log("Found scenario:", s.title);
+      const nextTitle = window.prompt("Rename scenario", s.title || "Untitled Scenario");
+
+      if (nextTitle == null) {
+        console.log("Rename cancelled by user");
+        return; // cancelled
+      }
+
+      const newTitle = nextTitle.trim();
+      if (!newTitle || newTitle === s.title) {
+        console.log("No changes needed for rename");
+        return;
+      }
+
+      console.log("Renaming from", s.title, "to", newTitle);
+      const updated = {
+        ...s,
+        title: newTitle,
+        graph: s.graph ? { ...s.graph, name: newTitle } : s.graph,
+      };
+
+      try {
+        await save(updated);
+        console.log("Scenario renamed successfully");
+        emitDebugPayload("scenarios.rename", { scenarioId, title: newTitle });
+      } catch (error) {
+        console.error("Failed to save renamed scenario:", error);
+        alert("Failed to save changes. Please try again.");
+      }
     } catch (error) {
-      console.error("Failed to save renamed scenario:", error);
-      alert("Failed to save changes. Please try again.");
+      console.error("Failed to get scenario:", error);
+      alert("Failed to load scenario. Please refresh the page and try again.");
     }
   };
 
-  const duplicate = () => {
+  const duplicate = async () => {
     if (!scenarioId) {
       console.error("No scenarioId provided to duplicate function");
       return;
     }
 
     console.log("Attempting to duplicate scenario:", scenarioId);
-    const s = get(scenarioId);
-
-    if (!s) {
-      console.error("Scenario not found:", scenarioId);
-      alert("Scenario not found. Please refresh the page.");
-      return;
-    }
-
-    console.log("Found scenario to duplicate:", s.title);
-
-    const duplicated: Scenario = {
-      ...s,
-      id: crypto.randomUUID(),
-      title: `${s.title} (Copy)`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      graph: s.graph ? { ...s.graph, name: `${s.title} (Copy)` } : s.graph,
-    };
-
-    console.log("Creating duplicate with title:", duplicated.title);
 
     try {
-      save(duplicated);
-      console.log("Scenario duplicated successfully");
-      emitDebugPayload("scenarios.duplicate", {
-        originalId: scenarioId,
-        newId: duplicated.id,
-        newTitle: duplicated.title,
-      });
+      const s = await get(scenarioId);
+
+      if (!s) {
+        console.error("Scenario not found:", scenarioId);
+        alert("Scenario not found. Please refresh the page.");
+        return;
+      }
+
+      console.log("Found scenario to duplicate:", s.title);
+
+      const duplicated: Scenario = {
+        ...s,
+        id: crypto.randomUUID(),
+        title: `${s.title} (Copy)`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        graph: s.graph ? { ...s.graph, name: `${s.title} (Copy)` } : s.graph,
+      };
+
+      console.log("Creating duplicate with title:", duplicated.title);
+
+      try {
+        await save(duplicated);
+        console.log("Scenario duplicated successfully");
+        emitDebugPayload("scenarios.duplicate", {
+          originalId: scenarioId,
+          newId: duplicated.id,
+          newTitle: duplicated.title,
+        });
+      } catch (error) {
+        console.error("Failed to save duplicated scenario:", error);
+        alert("Failed to duplicate scenario. Please try again.");
+      }
     } catch (error) {
-      console.error("Failed to save duplicated scenario:", error);
-      alert("Failed to duplicate scenario. Please try again.");
+      console.error("Failed to get scenario:", error);
+      alert("Failed to load scenario. Please refresh the page and try again.");
     }
   };
 

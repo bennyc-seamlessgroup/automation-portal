@@ -3,17 +3,18 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Shared data layer (Phase 2-ready)
-import { useScenarios } from "../state/ScenariosContext";
+import { useScenarios } from "../state";
 import type { Scenario } from "../types/scenarios";
 
 // Extracted helpers/components
-import DebugPayloadUI, { emitDebugPayload } from "./scenarios/debug/DebugPayloadUI";
+import DebugPayloadUI, {
+  emitDebugPayload,
+} from "./scenarios/debug/DebugPayloadUI";
 import { capitalize } from "./scenarios/utils/format";
 
 // Components (import individually since there's no barrel)
 import EmptyHero from "./scenarios/components/EmptyHero";
 import ListView from "./scenarios/components/ListView";
-
 
 type Status = "running" | "stopped" | "error";
 
@@ -26,15 +27,20 @@ export default function Scenarios() {
 
   // Data + nav
   const navigate = useNavigate();
-  const { scenarios, save, remove } = useScenarios();
+  const { scenarios, save, remove, refresh } = useScenarios();
 
   // Derived: filtered items
   const items = useMemo(() => {
     let out = scenarios;
-    if (statusFilter !== "All") out = out.filter((s) => s.status === statusFilter);
+    if (statusFilter !== "All")
+      out = out.filter((s) => s.status === statusFilter);
     if (q.trim()) {
       const t = q.toLowerCase();
-      out = out.filter((s) => s.title.toLowerCase().includes(t) || (s.meta || "").toLowerCase().includes(t));
+      out = out.filter(
+        (s) =>
+          s.title.toLowerCase().includes(t) ||
+          (s.meta || "").toLowerCase().includes(t)
+      );
     }
     return out;
   }, [q, statusFilter, scenarios]);
@@ -53,15 +59,18 @@ export default function Scenarios() {
     navigate("/templates");
   };
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setPage(1);
     emitDebugPayload("scenarios.refresh", { page: 1, q, statusFilter });
+    await refresh();
   };
 
   const onClearLocal = () => {
     try {
       localStorage.removeItem("ap.scenarios.v1");
-      localStorage.removeItem("automationPortal.scenarioBuilder.initialNode.v5");
+      localStorage.removeItem(
+        "automationPortal.scenarioBuilder.initialNode.v5"
+      );
       localStorage.removeItem("automationPortal.scenarioBuilder.versions");
       emitDebugPayload("scenarios.local.clear", {
         keys: [
@@ -74,7 +83,6 @@ export default function Scenarios() {
       alert("Local storage cleared for scenarios and builder drafts.");
     } catch (e) {
       alert("Failed to clear local storage. See console for details.");
-      // eslint-disable-next-line no-console
       console.error(e);
     }
   };
@@ -84,15 +92,18 @@ export default function Scenarios() {
     navigate(`/scenarios/${id}/edit`);
   };
 
-  const onToggleStatus = (s: Scenario, toRunning: boolean) => {
+  const onToggleStatus = async (s: Scenario, toRunning: boolean) => {
     const next: Scenario = { ...s, status: toRunning ? "running" : "stopped" };
-    emitDebugPayload("scenarios.toggleStatus", { scenarioId: s.id, to: next.status });
-    save(next);
+    emitDebugPayload("scenarios.toggleStatus", {
+      scenarioId: s.id,
+      to: next.status,
+    });
+    await save(next);
   };
 
-  const onDelete = (id: string) => {
+  const onDelete = async (id: string) => {
     emitDebugPayload("scenarios.delete", { scenarioId: id });
-    remove(id);
+    await remove(id);
   };
 
   return (
@@ -104,9 +115,14 @@ export default function Scenarios() {
 
           {/* Status filter */}
           <div className="dropdown">
-            <button className="btn btn-outline-dark btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+            <button
+              className="btn btn-outline-dark btn-sm dropdown-toggle"
+              data-bs-toggle="dropdown"
+            >
               <i className="bi bi-funnel me-1" />
-              {statusFilter === "All" ? "All statuses" : capitalize(statusFilter)}
+              {statusFilter === "All"
+                ? "All statuses"
+                : capitalize(statusFilter)}
             </button>
             <ul className="dropdown-menu">
               {(["All", "running", "stopped", "error"] as const).map((st) => (
@@ -114,9 +130,11 @@ export default function Scenarios() {
                   <button
                     className="dropdown-item"
                     onClick={() => {
-                      setStatusFilter(st as any);
+                      setStatusFilter(st);
                       setPage(1);
-                      emitDebugPayload("scenarios.filter.status", { status: st === "All" ? null : st });
+                      emitDebugPayload("scenarios.filter.status", {
+                        status: st === "All" ? null : st,
+                      });
                     }}
                   >
                     {st === "All" ? "All statuses" : capitalize(st as Status)}
@@ -127,10 +145,18 @@ export default function Scenarios() {
           </div>
 
           {/* Refresh & clear local */}
-          <button className="btn btn-outline-dark btn-sm" onClick={onRefresh} title="Refresh">
+          <button
+            className="btn btn-outline-dark btn-sm"
+            onClick={onRefresh}
+            title="Refresh"
+          >
             <i className="bi bi-arrow-clockwise" />
           </button>
-          <button className="btn btn-outline-danger btn-sm" onClick={onClearLocal} title="Clear local storage">
+          <button
+            className="btn btn-outline-danger btn-sm"
+            onClick={onClearLocal}
+            title="Clear local storage"
+          >
             <i className="bi bi-trash3" />
           </button>
         </div>
@@ -138,7 +164,9 @@ export default function Scenarios() {
         {/* Search + create */}
         <div className="d-flex align-items-center gap-2">
           <div className="input-group input-group-sm" style={{ minWidth: 320 }}>
-            <span className="input-group-text"><i className="bi bi-search" /></span>
+            <span className="input-group-text">
+              <i className="bi bi-search" />
+            </span>
             <input
               className="form-control"
               placeholder="Search by name or webhook"
@@ -152,7 +180,10 @@ export default function Scenarios() {
             />
           </div>
 
-          <button className="btn btn-primary px-4 d-inline-flex align-items-center" onClick={onCreate}>
+          <button
+            className="btn btn-primary px-4 d-inline-flex align-items-center"
+            onClick={onCreate}
+          >
             <i className="bi bi-plus-lg me-1" />
             Create
           </button>
@@ -161,7 +192,10 @@ export default function Scenarios() {
 
       {/* Body */}
       {items.length === 0 ? (
-        <EmptyHero onOpenScenarioBuilder={onCreate} onBrowseTemplates={onBrowseTemplates} />
+        <EmptyHero
+          onOpenScenarioBuilder={onCreate}
+          onBrowseTemplates={onBrowseTemplates}
+        />
       ) : (
         <ListView
           items={pageItems}
@@ -174,7 +208,12 @@ export default function Scenarios() {
       {/* Footer: pagination */}
       <div className="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2">
         <small className="text-secondary">
-          {total === 0 ? "No scenarios" : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total}`}
+          {total === 0
+            ? "No scenarios"
+            : `${(page - 1) * pageSize + 1}–${Math.min(
+                page * pageSize,
+                total
+              )} of ${total}`}
         </small>
 
         <div className="d-flex align-items-center gap-2">
@@ -193,21 +232,30 @@ export default function Scenarios() {
                 </button>
               </li>
 
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                <li key={pageNum} className={`page-item ${page === pageNum ? "active" : ""}`}>
-                  <button
-                    className="page-link"
-                    onClick={() => {
-                      setPage(pageNum);
-                      emitDebugPayload("scenarios.page.change", { page: pageNum });
-                    }}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (pageNum) => (
+                  <li
+                    key={pageNum}
+                    className={`page-item ${page === pageNum ? "active" : ""}`}
                   >
-                    {pageNum}
-                  </button>
-                </li>
-              ))}
+                    <button
+                      className="page-link"
+                      onClick={() => {
+                        setPage(pageNum);
+                        emitDebugPayload("scenarios.page.change", {
+                          page: pageNum,
+                        });
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  </li>
+                )
+              )}
 
-              <li className={`page-item ${page === totalPages ? "disabled" : ""}`}>
+              <li
+                className={`page-item ${page === totalPages ? "disabled" : ""}`}
+              >
                 <button
                   className="page-link"
                   onClick={() => {

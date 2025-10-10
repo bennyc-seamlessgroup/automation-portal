@@ -39,8 +39,7 @@ export function deleteScenario(id: string) {
   write(read().filter(s => s.id !== id));
 }
 
-export function humanAgo(_d = new Date()) {
-  // super simple; swap with dayjs later if you like
+export function humanAgo(): string {
+  // TODO: Implement proper human-readable time formatting
   return "just now";
 }
-  

@@ -1,33 +1,73 @@
-import React, { createContext, useContext, useMemo, useState, useCallback, useEffect } from "react";
+import React, {
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
+import { ScenariosContext } from "./ScenariosContext.context";
 import type { Scenario } from "../types/scenarios";
-import { listScenarios, upsertScenario, deleteScenario, getScenario } from "./scenarios";
+import { getScenariosService } from "../services/scenarios";
 
-type Ctx = {
-  scenarios: Scenario[];
-  refresh: () => void;
-  save: (s: Scenario) => void;
-  remove: (id: string) => void;
-  get: (id: string) => Scenario | undefined;
-};
-
-const ScenariosContext = createContext<Ctx | null>(null);
-
-export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const scenariosService = getScenariosService();
 
-  const refresh = useCallback(() => setScenarios(listScenarios()), []);
-  const save = useCallback((s: Scenario) => { upsertScenario(s); refresh(); }, [refresh]);
-  const remove = useCallback((id: string) => { deleteScenario(id); refresh(); }, [refresh]);
-  const get = useCallback((id: string) => getScenario(id), []);
+  const refresh = useCallback(async () => {
+    try {
+      const result = await scenariosService.list({});
+      setScenarios(result.items);
+    } catch (error) {
+      console.error('Failed to load scenarios:', error);
+      setScenarios([]);
+    }
+  }, [scenariosService]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  const save = useCallback(
+    async (s: Scenario) => {
+      try {
+        await scenariosService.save(s);
+        await refresh();
+      } catch (error) {
+        console.error('Failed to save scenario:', error);
+      }
+    },
+    [scenariosService, refresh]
+  );
 
-  const value = useMemo(() => ({ scenarios, refresh, save, remove, get }), [scenarios, refresh, save, remove, get]);
-  return <ScenariosContext.Provider value={value}>{children}</ScenariosContext.Provider>;
+  const remove = useCallback(
+    async (id: string) => {
+      try {
+        await scenariosService.remove(id);
+        await refresh();
+      } catch (error) {
+        console.error('Failed to remove scenario:', error);
+      }
+    },
+    [scenariosService, refresh]
+  );
+
+  const get = useCallback(async (id: string) => {
+    try {
+      return await scenariosService.get(id);
+    } catch (error) {
+      console.error('Failed to get scenario:', error);
+      return undefined;
+    }
+  }, [scenariosService]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const value = useMemo(
+    () => ({ scenarios, refresh, save, remove, get }),
+    [scenarios, refresh, save, remove, get]
+  );
+  return (
+    <ScenariosContext.Provider value={value}>
+      {children}
+    </ScenariosContext.Provider>
+  );
 };
-
-export function useScenarios() {
-  const ctx = useContext(ScenariosContext);
-  if (!ctx) throw new Error("useScenarios must be used within ScenariosProvider");
-  return ctx;
-}
