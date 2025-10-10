@@ -1,0 +1,18 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "dev",
+      "label": "npm: dev",
+      "detail": "Start the Vite development server"
+    },
+    {
+      "type": "npm",
+      "script": "build",
+      "group": "build",
+      "label": "npm: build",
+      "detail": "Type-check and create a production build"
+    }
+  ]
+}
