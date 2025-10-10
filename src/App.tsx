@@ -1,20 +1,20 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense, lazy } from 'react'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
-import Scenarios from './pages/Scenarios'
-import Templates from './pages/Templates'
-import DataStores from './pages/DataStores'
-import Connections from './pages/Connections'
-import Apps from './pages/Apps'
-import Webhooks from './pages/Webhooks'
-import Teams from './pages/Teams'
-import Billing from './pages/Billing'
-import Settings from './pages/Settings'
-import Help from './pages/Help'
-import ScenarioBuilder from './pages/ScenarioBuilder'
-import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
+const Scenarios = lazy(() => import('./pages/Scenarios'))
+const Templates = lazy(() => import('./pages/Templates'))
+const DataStores = lazy(() => import('./pages/DataStores'))
+const Connections = lazy(() => import('./pages/Connections'))
+const Apps = lazy(() => import('./pages/Apps'))
+const Webhooks = lazy(() => import('./pages/Webhooks'))
+const Teams = lazy(() => import('./pages/Teams'))
+const Billing = lazy(() => import('./pages/Billing'))
+const Settings = lazy(() => import('./pages/Settings'))
+const Help = lazy(() => import('./pages/Help'))
+const ScenarioBuilder = lazy(() => import('./pages/ScenarioBuilder'))
+const Login = lazy(() => import('./pages/Login'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
 
 // 🔧 state context for scenarios (lightweight data layer)
 import { ScenariosProvider } from './state/ScenariosContext'
@@ -41,32 +41,34 @@ export default function App() {
         {!isLoginPage && <Topbar onHamburger={() => setSidebarOpen(s => !s)} />}
 
         <main className="app-content">
-          <Routes>
-            {/* default to login */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+          <Suspense fallback={<div>Loading…</div>}>
+            <Routes>
+              {/* default to login */}
+              <Route path="/" element={<Navigate to="/login" replace />} />
 
-            {/* auth / main */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+              {/* auth / main */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<Dashboard />} />
 
-            {/* scenarios list + builder */}
-            <Route path="/scenarios" element={<Scenarios />} />
-            <Route path="/scenarios/new" element={<ScenarioBuilder />} />
-            {/* edit routes (both forms supported) */}
-            <Route path="/scenarios/:id" element={<ScenarioBuilder />} />
-            <Route path="/scenarios/:id/edit" element={<ScenarioBuilder />} />
+              {/* scenarios list + builder */}
+              <Route path="/scenarios" element={<Scenarios />} />
+              <Route path="/scenarios/new" element={<ScenarioBuilder />} />
+              {/* edit routes (both forms supported) */}
+              <Route path="/scenarios/:id" element={<ScenarioBuilder />} />
+              <Route path="/scenarios/:id/edit" element={<ScenarioBuilder />} />
 
-            {/* other sections */}
-            <Route path="/templates" element={<Templates />} />
-            <Route path="/data-stores" element={<DataStores />} />
-            <Route path="/connections" element={<Connections />} />
-            <Route path="/apps" element={<Apps />} />
-            <Route path="/webhooks" element={<Webhooks />} />
-            <Route path="/teams" element={<Teams />} />
-            <Route path="/billing" element={<Billing />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/help" element={<Help />} />
-          </Routes>
+              {/* other sections */}
+              <Route path="/templates" element={<Templates />} />
+              <Route path="/data-stores" element={<DataStores />} />
+              <Route path="/connections" element={<Connections />} />
+              <Route path="/apps" element={<Apps />} />
+              <Route path="/webhooks" element={<Webhooks />} />
+              <Route path="/teams" element={<Teams />} />
+              <Route path="/billing" element={<Billing />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/help" element={<Help />} />
+            </Routes>
+          </Suspense>
         </main>
 
         {/* debug overlay removed globally */}

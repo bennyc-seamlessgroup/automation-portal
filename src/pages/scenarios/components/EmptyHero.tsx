@@ -1,6 +1,11 @@
 import { emitDebugPayload } from "../debug/DebugPayloadUI";
 
-export default function EmptyHero() {
+type EmptyHeroProps = {
+  onOpenScenarioBuilder: () => void;
+  onBrowseTemplates: () => void;
+};
+
+export default function EmptyHero({ onOpenScenarioBuilder, onBrowseTemplates }: EmptyHeroProps) {
   return (
     <div className="py-4">
       <div className="text-center text-secondary mb-3">You haven't created any scenarios yet</div>
@@ -40,6 +45,7 @@ export default function EmptyHero() {
               onClick={(e) => {
                 e.preventDefault();
                 emitDebugPayload("scenarios.builder.open", { source: "emptyHero" });
+                onOpenScenarioBuilder();
               }}
             >
               <i className="bi bi-box-arrow-up-right me-1" />
@@ -51,6 +57,7 @@ export default function EmptyHero() {
               onClick={(e) => {
                 e.preventDefault();
                 emitDebugPayload("templates.browse.open", { source: "emptyHero" });
+                onBrowseTemplates();
               }}
             >
               <i className="bi bi-grid me-1" />

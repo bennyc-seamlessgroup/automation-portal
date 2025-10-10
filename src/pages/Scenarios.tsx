@@ -49,6 +49,10 @@ export default function Scenarios() {
     navigate("/scenarios/new");
   };
 
+  const onBrowseTemplates = () => {
+    navigate("/templates");
+  };
+
   const onRefresh = () => {
     setPage(1);
     emitDebugPayload("scenarios.refresh", { page: 1, q, statusFilter });
@@ -157,7 +161,7 @@ export default function Scenarios() {
 
       {/* Body */}
       {items.length === 0 ? (
-        <EmptyHero />
+        <EmptyHero onOpenScenarioBuilder={onCreate} onBrowseTemplates={onBrowseTemplates} />
       ) : (
         <ListView
           items={pageItems}

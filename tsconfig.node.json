@@ -12,6 +12,13 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "sourceMap": true,
+    "inlineSources": true,
+    "types": ["node"],
 
     /* Linting */
     "strict": true,
