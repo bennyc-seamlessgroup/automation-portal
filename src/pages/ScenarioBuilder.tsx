@@ -12,8 +12,10 @@ import ReactFlow, {
   ConnectionMode,
   type OnConnect,
   type NodeTypes,
+  type Node,
+  type Edge,
+  type Connection,
 } from "reactflow";
-import type { Node, Edge, Connection } from "reactflow";
 import "reactflow/dist/style.css";
 import { useScenarios } from "../state";
 import type { Scenario } from "../types/scenarios";
@@ -30,7 +32,7 @@ import { useAutosave } from "./scenario-builder/hooks/useAutosave";
 import {
   DebugPayloadUI,
   emitDebugPayload,
-} from "./scenario-builder/components/DebugPayloadUI";
+} from "./scenario-builder/debug/DebugPayloadUI";
 import { InitialNode } from "./scenario-builder/components/InitialNode";
 import { AppNode } from "./scenario-builder/components/AppNode";
 import { Drawer } from "./scenario-builder/components/Drawer";
