@@ -10,10 +10,9 @@ type GmailInspectorProps = {
   onChangeNode: (node: Node<RFData>) => void;
   onDeleteNode: (id: string) => void;
   onClose?: () => void;
-  onManualSave?: () => void;
 };
 
-export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onManualSave }: GmailInspectorProps) {
+export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose }: GmailInspectorProps) {
   const isApp = node.type === "app";
   const data = (node.data || {}) as RFData;
   const appKey = (data.appKey as AppKey) || ("" as AppKey);
@@ -23,14 +22,19 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
     onChangeNode({ ...node, data: { ...(node.data || {}), ...patch } });
 
   // Two tabs for Gmail: Connect / Configure
-  const [activeTab, setActiveTab] = useState<"connect" | "configure">("connect");
+  const [activeTab, setActiveTab] = useState<"connect" | "configure" | "test">("connect");
 
   // Header title editing state
   const [editingTitle, setEditingTitle] = useState(false);
 
   // Step tracking for wizard-like experience
-  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [isConnected, setIsConnected] = useState(false);
+  const [isConfigured, setIsConfigured] = useState(false);
+
+  // Test state
+  const [hasTested, setHasTested] = useState<boolean>(false);
+  const [isTesting, setIsTesting] = useState<boolean>(false);
 
   // Header title override for Gmail
   const headerTitle = data.label || "Gmail – Watch emails";
@@ -38,7 +42,8 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
   // Step titles and descriptions
   const steps = [
     { id: 1, title: "Connect", description: "Connect your Gmail account" },
-    { id: 2, title: "Configure", description: "Set up your email watching preferences" }
+    { id: 2, title: "Configure", description: "Set up your email watching preferences" },
+    { id: 3, title: "Test", description: "Test your Gmail connection" }
   ];
 
   const handleConnect = () => {
@@ -47,9 +52,50 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
     setActiveTab("configure");
   };
 
+  const handleConfigure = () => {
+    // Check if mail folder is selected (required field)
+    const mailFolder = localValues["mailbox"] as string;
+    if (!mailFolder || mailFolder.trim() === "") {
+      alert("Please select a mail folder to watch before continuing.");
+      return;
+    }
+
+    setIsConfigured(true);
+    setCurrentStep(3);
+    setActiveTab("test");
+  };
+
   const handleBackToConnect = () => {
     setCurrentStep(1);
     setActiveTab("connect");
+  };
+
+  const handleBackToConfigure = () => {
+    setCurrentStep(2);
+    setActiveTab("configure");
+  };
+
+  // Test Gmail connection
+  const handleTestGmail = async () => {
+    try {
+      setIsTesting(true);
+
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      setHasTested(true);
+    } catch (error) {
+      console.error("Failed to test Gmail connection:", error);
+      alert(`❌ Gmail connection test failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  // Reset test state
+  const handleTestAgain = async () => {
+    setHasTested(false);
+    await handleTestGmail();
   };
 
   // Local state for form values - separate from node data to avoid triggering unsaved changes
@@ -63,34 +109,6 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
   const writeValue = (k: string, v: unknown) => {
     setLocalValues(prev => ({ ...prev, [k]: v }));
   };
-
-  // Apply local values to node data when saving
-  const saveSettings = () => {
-    // Check if mail folder is selected (required field)
-    const mailFolder = localValues["mailbox"] as string;
-    if (!mailFolder || mailFolder.trim() === "") {
-      alert("Please select a mail folder to watch before saving.");
-      return;
-    }
-
-    // Apply all local values to node data and trigger save
-    setData({ values: localValues });
-
-    // Mark configuration as completed
-    setCurrentStep(2); // Already on step 2, but ensure it's marked as completed
-
-    // Trigger manual save if provided
-    if (onManualSave) {
-      onManualSave();
-    }
-
-    // Close the window
-    if (onClose) {
-      onClose();
-    }
-  };
-
-  // Generic field renderer with Gmail-specific tweaks
   const renderField = (field: {
     key: string;
     label: string;
@@ -111,7 +129,7 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
     if (normalizedLabel === "email category") {
       displayLabel = "Mail folder to watch *";
       if (!options.map((o) => o.toLowerCase()).includes("all mail")) {
-        options = [...options, "All mail"];
+        options = ["All mail", ...options];
       }
     }
 
@@ -243,7 +261,7 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
           </select>
         </div>
 
-        {/* Save Setting button */}
+        {/* Configure button */}
         <div style={{ marginTop: 16 }}>
           <button
             style={{
@@ -258,9 +276,9 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
               fontWeight: "500",
               width: "100%",
             }}
-            onClick={saveSettings}
+            onClick={handleConfigure}
           >
-            Save Setting
+            Configure & Continue
           </button>
         </div>
       </>
@@ -407,7 +425,7 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
                   zIndex: 3
                 }} />
               )}
-              {step.id === 2 && (localValues["mailbox"] as string) && (localValues["mailbox"] as string).trim() !== "" && (
+              {step.id === 2 && isConfigured && (
                 <div style={{
                   position: "absolute",
                   top: "-2px",
@@ -480,9 +498,33 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
         </div>
       )}
 
+      {/* Back button for step 3 */}
+      {currentStep === 3 && (
+        <div style={{ marginBottom: 16 }}>
+          <button
+            onClick={handleBackToConfigure}
+            style={{
+              background: "none",
+              border: "1px solid #d1d5db",
+              color: "#6b7280",
+              padding: "6px 12px",
+              borderRadius: "6px",
+              fontSize: "12px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
+            }}
+          >
+            <i className="bi bi-arrow-left" />
+            Back to Configure
+          </button>
+        </div>
+      )}
+
       {/* Tab navigation - hidden, using step-based interface instead */}
       <div style={{ display: "none" }}>
-        {(["connect", "configure"] as const).map((t) => (
+        {(["connect", "configure", "test"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setActiveTab(t)}
@@ -498,7 +540,7 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
               transition: "all 0.2s ease",
             }}
           >
-            {t === "connect" ? "Connect" : "Configure"}
+            {t === "connect" ? "Connect" : t === "configure" ? "Configure" : "Test"}
           </button>
         ))}
       </div>
@@ -557,6 +599,182 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
             <div className="text-secondary" style={{ fontSize: 13 }}>
               Select a Gmail node to configure its options.
             </div>
+          )}
+        </div>
+      )}
+
+      {/* TEST TAB */}
+      {activeTab === "test" && (
+        <div style={{ marginTop: 4 }}>
+          <div style={{ ...builderStyles.formLabel, fontWeight: 600, color: "#374151", marginBottom: 12 }}>
+            Test Gmail Connection
+          </div>
+
+          <div style={{
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: "8px",
+            padding: "16px",
+            marginBottom: 16
+          }}>
+            <p style={{ fontSize: "13px", color: "#475569", margin: 0, lineHeight: 1.5 }}>
+              Test your Gmail connection to ensure it's working properly. We'll check for recent emails in your selected folder.
+            </p>
+          </div>
+
+          {!hasTested ? (
+            // Initial test screen - show test buttons
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                style={{
+                  ...builderStyles.input,
+                  background: "#6b7280",
+                  color: "#fff",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  flex: 1,
+                }}
+                onClick={() => {
+                  if (onClose) onClose();
+                }}
+              >
+                Skip Test
+              </button>
+              <button
+                style={{
+                  ...builderStyles.input,
+                  background: isTesting ? "#6b7280" : "#2563eb",
+                  color: "#fff",
+                  border: "none",
+                  cursor: isTesting ? "not-allowed" : "pointer",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  flex: 1,
+                }}
+                onClick={handleTestGmail}
+                disabled={isTesting}
+              >
+                {isTesting ? (
+                  <>
+                    <i className="bi bi-hourglass-split me-2" />
+                    Testing...
+                  </>
+                ) : (
+                  "Test"
+                )}
+              </button>
+            </div>
+          ) : (
+            // After test - show email records and new buttons
+            <>
+              {/* Sample Gmail records */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ ...builderStyles.formLabel, fontWeight: 600, color: "#374151", marginBottom: 8 }}>
+                  Recent Emails (Sample Data)
+                </div>
+
+                {/* Record 1 */}
+                <div style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "6px",
+                  padding: "12px",
+                  marginBottom: "8px",
+                  background: "#fff"
+                }}>
+                  <div style={{ fontSize: "14px", fontWeight: "500", color: "#1e293b", marginBottom: "4px" }}>
+                    Welcome to Gmail - Getting Started Guide
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "4px" }}>
+                    From: no-reply@accounts.google.com
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    Received: 2 hours ago • Inbox
+                  </div>
+                </div>
+
+                {/* Record 2 */}
+                <div style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "6px",
+                  padding: "12px",
+                  marginBottom: "8px",
+                  background: "#fff"
+                }}>
+                  <div style={{ fontSize: "14px", fontWeight: "500", color: "#1e293b", marginBottom: "4px" }}>
+                    Your Weekly Newsletter - Issue #42
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "4px" }}>
+                    From: newsletter@techweekly.com
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    Received: 1 day ago • Promotions
+                  </div>
+                </div>
+
+                {/* Record 3 */}
+                <div style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "6px",
+                  padding: "12px",
+                  background: "#fff"
+                }}>
+                  <div style={{ fontSize: "14px", fontWeight: "500", color: "#1e293b", marginBottom: "4px" }}>
+                    Meeting Reminder: Project Review
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "4px" }}>
+                    From: calendar-notification@google.com
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    Received: 3 days ago • Inbox
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  style={{
+                    ...builderStyles.input,
+                    background: "#16a34a",
+                    color: "#fff",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "8px 16px",
+                    borderRadius: "6px",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    flex: 1,
+                  }}
+                  onClick={handleTestAgain}
+                >
+                  Test Again
+                </button>
+                <button
+                  style={{
+                    ...builderStyles.input,
+                    background: "#2563eb",
+                    color: "#fff",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "8px 16px",
+                    borderRadius: "6px",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    flex: 1,
+                  }}
+                  onClick={() => {
+                    if (onClose) onClose();
+                  }}
+                >
+                  Done
+                </button>
+              </div>
+            </>
           )}
         </div>
       )}

@@ -20,7 +20,7 @@ export class GmailWatchEmails {
   static readonly appIcon = '✉️';
 
   static getConfigurationPhases(appKey: string): ConfigurationPhase[] {
-    if (appKey === 'gmailNewEmail') {
+    if (appKey === 'gmailWatchEmails') {
       return [
         {
           key: 'connect',
@@ -40,20 +40,20 @@ export class GmailWatchEmails {
           ]
         },
         {
-          key: 'configure',
-          name: 'Configure',
+          key: 'test',
+          name: 'Test',
           fields: [
             {
-              key: 'mailbox',
-              label: 'Email Category',
-              type: 'select',
-              options: ['Inbox', 'Sent', 'Chat', 'Starred', 'Important', 'Trash', 'Draft', 'Spam', 'Unread']
+              key: 'testDescription',
+              label: 'Test Gmail Connection',
+              type: 'text',
+              placeholder: 'Test your Gmail connection to ensure it\'s working properly. We\'ll check for recent emails in your selected folder.'
             },
             {
               key: 'continue',
-              label: 'Continue to Test',
+              label: 'Done',
               type: 'button',
-              action: 'continueToTest'
+              action: 'finish'
             }
           ]
         }
@@ -66,7 +66,7 @@ export class GmailWatchEmails {
   static getTriggers(): AppSpec[] {
     return [
       {
-        key: 'gmailNewEmail',
+        key: 'gmailWatchEmails',
         name: 'Gmail — Watch emails',
         color: GmailWatchEmails.appColor,
         icon: GmailWatchEmails.appIcon,

@@ -2,7 +2,7 @@ export type CategoryKey = "apps" | "ai" | "flow" | "utilities" | "products" | "c
 
 export type AppKey =
   // Apps (Gmail)
-  | "gmailNewEmail" | "gmailSend" | "gmailSearch" | "slackPost" | "calendarCreate" | "sheetsAddRow" | "driveUpload" | "outlookSend" | "telegramSend"
+  | "gmailWatchEmails" | "gmailSend" | "gmailSearch" | "slackPost" | "calendarCreate" | "sheetsAddRow" | "driveUpload" | "outlookSend" | "telegramSend"
   // AI
   | "aiSummarize" | "aiExtract" | "aiClassify" | "aiTranslate" | "aiTranscribe" | "aiSearch"
   // Flow controls
