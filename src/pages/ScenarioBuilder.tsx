@@ -303,15 +303,15 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
       // Debug payload for autosave - Enhanced with full state snapshot and diff info for backend team
       emitDebugPayload("scenarioBuilder.save.autosave", {
-        scenarioId: id,
-        scenarioName: name,
-        nodeCount: nodes.length,
-        edgeCount: edges.length,
-        modules,
+        id: id,
+        name: name,
+        nodes_count: nodes.length,
+        edges_count: edges.length,
+        modules_count: modules,
         // Full state snapshot for backend persistence
-        fullState: {
-          scenarioId: id,
-          scenarioName: name,
+        full_state: {
+          id: id,
+          name: name,
           notes,
           nodes: nodes.map((n) => ({
             id: n.id,
@@ -332,15 +332,15 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
             animated: e.animated,
             style: e.style,
           })),
-          scheduleEnabled,
+          schedule_enabled: scheduleEnabled,
           interval,
         },
         // Minimal diff info for backend team
         diff: {
           action: "autosave",
           timestamp: new Date().toISOString(),
-          previousNodeCount: nodes.length,
-          previousEdgeCount: edges.length,
+          nodes_count: nodes.length,
+          edges_count: edges.length,
           changes: "auto-saved current state",
         },
       });
@@ -396,23 +396,23 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
         targetNode?.data?.label || targetNode?.type || "Unknown";
 
       addLogEntry("info", `Connected: ${sourceName} -> ${targetName}`, {
-        sourceId: params.source,
-        targetId: params.target,
-        edgeId: uid("e"),
+        source_id: params.source,
+        target_id: params.target,
+        edge_id: uid("e"),
       });
 
       // Debug payload for edge creation - Enhanced with full state snapshot and diff info for backend team
       emitDebugPayload("scenarioBuilder.edge.create", {
-        sourceId: params.source,
-        targetId: params.target,
-        edgeId: uid("e"),
-        sourceName,
-        targetName,
-        scenarioId,
+        source_id: params.source,
+        target_id: params.target,
+        edge_id: uid("e"),
+        source_name: sourceName,
+        target_name: targetName,
+        scenario_id: scenarioId,
         // Full state snapshot for backend persistence
-        fullState: {
-          scenarioId,
-          scenarioName,
+        full_state: {
+          scenario_id: scenarioId,
+          scenario_name: scenarioName,
           notes,
           nodes: nodes.map((n) => ({
             id: n.id,
@@ -433,17 +433,17 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
             animated: e.animated,
             style: e.style,
           })),
-          scheduleEnabled,
+          schedule_enabled: scheduleEnabled,
           interval,
         },
         // Minimal diff info for backend team
         diff: {
           action: "edge_created",
           timestamp: new Date().toISOString(),
-          sourceId: params.source,
-          targetId: params.target,
-          sourceName,
-          targetName,
+          source_id: params.source,
+          target_id: params.target,
+          source_name: sourceName,
+          target_name: targetName,
           changes: `Connected: ${sourceName} -> ${targetName}`,
         },
       });
@@ -486,14 +486,14 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
     // Debug payload for node changes - Enhanced with full state snapshot and diff info for backend team
     emitDebugPayload("scenarioBuilder.node.change", {
-      nodeId: draft.id,
-      nodeType: draft.type,
-      nodeData: draft.data,
-      scenarioId,
+      node_id: draft.id,
+      node_type: draft.type,
+      node_data: draft.data,
+      scenario_id: scenarioId,
       // Full state snapshot for backend persistence
-      fullState: {
-        scenarioId,
-        scenarioName,
+      full_state: {
+        scenario_id: scenarioId,
+        scenario_name: scenarioName,
         notes,
         nodes: nodes.map((n) => ({
           id: n.id,
@@ -514,16 +514,16 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
           animated: e.animated,
           style: e.style,
         })),
-        scheduleEnabled,
+        schedule_enabled: scheduleEnabled,
         interval,
       },
       // Minimal diff info for backend team
       diff: {
         action: "node_changed",
         timestamp: new Date().toISOString(),
-        nodeId: draft.id,
-        previousData: originalNodeData,
-        newData: draft.data,
+        node_id: draft.id,
+        previous_data: originalNodeData,
+        new_data: draft.data,
         changes: "Node data modified",
       },
     });
@@ -602,9 +602,9 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
       // Log the save action
       addLogEntry("success", `Scenario saved: ${scenarioName}`, {
-        nodeCount: currentNodes.length,
-        edgeCount: currentEdges.length,
-        scenarioId: id,
+        nodes_count: currentNodes.length,
+        edges_count: currentEdges.length,
+        scenario_id: id,
       });
 
       setSavingFlash("Saved");
@@ -612,15 +612,15 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
       // Debug payload for manual save - Enhanced with full state snapshot and diff info for backend team
       emitDebugPayload("scenarioBuilder.save.manual", {
-        scenarioId: id,
-        scenarioName,
-        nodeCount: currentNodes.length,
-        edgeCount: currentEdges.length,
-        modules,
+        id: id,
+        name: scenarioName,
+        nodes_count: currentNodes.length,
+        edges_count: currentEdges.length,
+        modules_count: modules,
         // Full state snapshot for backend persistence
-        fullState: {
-          scenarioId: id,
-          scenarioName,
+        full_state: {
+          id: id,
+          name: scenarioName,
           notes,
           nodes: currentNodes.map((n: Node<RFData>) => ({
             id: n.id,
@@ -641,15 +641,15 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
             animated: e.animated,
             style: e.style,
           })),
-          scheduleEnabled,
+          schedule_enabled: scheduleEnabled,
           interval,
         },
         // Minimal diff info for backend team
         diff: {
           action: "manual_save",
           timestamp: new Date().toISOString(),
-          previousNodeCount: nodes.length,
-          previousEdgeCount: edges.length,
+          nodes_count: currentNodes.length,
+          edges_count: currentEdges.length,
           changes: "manual save performed",
         },
       });
@@ -711,8 +711,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
       // Log the deletion
       addLogEntry("warning", `Deleted node: ${nodeName}`, {
-        nodeId: id,
-        nodeType: nodeToDelete?.type,
+        node_id: id,
+        node_type: nodeToDelete?.type,
       });
 
       // Auto-save on change using the computed post-delete state
@@ -746,14 +746,14 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
       // Debug payload for node deletion - Enhanced with full state snapshot and diff info for backend team
       emitDebugPayload("scenarioBuilder.node.delete", {
-        nodeId: id,
-        nodeName,
-        nodeType: nodeToDelete?.type,
-        scenarioId,
+        node_id: id,
+        node_name: nodeName,
+        node_type: nodeToDelete?.type,
+        scenario_id: scenarioId,
         // Full state snapshot for backend persistence
-        fullState: {
-          scenarioId,
-          scenarioName,
+        full_state: {
+          scenario_id: scenarioId,
+          scenario_name: scenarioName,
           notes,
           nodes: finalNodes.map((n) => ({
             id: n.id,
@@ -774,16 +774,16 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
             animated: e.animated,
             style: e.style,
           })),
-          scheduleEnabled,
+          schedule_enabled: scheduleEnabled,
           interval,
         },
         // Minimal diff info for backend team
         diff: {
           action: "node_deleted",
           timestamp: new Date().toISOString(),
-          nodeId: id,
-          nodeName,
-          nodeType: nodeToDelete?.type,
+          node_id: id,
+          node_name: nodeName,
+          node_type: nodeToDelete?.type,
           changes: `Deleted node: ${nodeName}`,
         },
       });
@@ -818,9 +818,9 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
   const handleTestRun = useCallback(() => {
     emitDebugPayload("scenarioBuilder.test.start", {
-      nodeCount: nodes.length,
-      edgeCount: edges.length,
-      scenarioId,
+      nodes_count: nodes.length,
+      edges_count: edges.length,
+      scenario_id: scenarioId,
     });
     addLogEntry("info", "Test run started", {
       nodeCount: nodes.length,
@@ -1613,8 +1613,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                 ) as Node<RFData>[]
             );
             addLogEntry("info", `Replaced node with: ${spec.name}`, {
-              nodeId: replaceId,
-              appKey: key,
+              node_id: replaceId,
+              app_key: key,
             });
             setPickerFor(null);
             setSelectedId(replaceId);
@@ -1650,9 +1650,9 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
           // Log the node creation
           addLogEntry("success", `Added node: ${spec.name}`, {
-            nodeId: id,
-            appKey: key,
-            connectedFrom: srcId || null,
+            node_id: id,
+            app_key: key,
+            connected_from: srcId || null,
           });
 
           setPickerFor(null);
@@ -1665,15 +1665,15 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
           // Debug payload for node creation - Enhanced with full state snapshot and diff info for backend team
           emitDebugPayload("scenarioBuilder.node.create", {
-            nodeId: id,
-            nodeName: spec.name,
-            appKey: key,
-            connectedFrom: srcId,
-            scenarioId,
+            node_id: id,
+            node_name: spec.name,
+            app_key: key,
+            connected_from: srcId,
+            scenario_id: scenarioId,
             // Full state snapshot for backend persistence
-            fullState: {
-              scenarioId,
-              scenarioName,
+            full_state: {
+              scenario_id: scenarioId,
+              scenario_name: scenarioName,
               notes,
               nodes: nodes.map((n) => ({
                 id: n.id,
@@ -1694,17 +1694,17 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                 animated: e.animated,
                 style: e.style,
               })),
-              scheduleEnabled,
+              schedule_enabled: scheduleEnabled,
               interval,
             },
             // Minimal diff info for backend team
             diff: {
               action: "node_created",
               timestamp: new Date().toISOString(),
-              nodeId: id,
-              nodeType: "app",
-              nodeData: { label: spec.name, appKey: key, values: {} },
-              connectedFrom: srcId,
+              node_id: id,
+              node_type: "app",
+              node_data: { label: spec.name, appKey: key, values: {} },
+              connected_from: srcId,
               changes: `Added new node: ${spec.name}`,
             },
           });

@@ -2,7 +2,7 @@ import { APP_CATALOG } from "./catalog";
 import type { AppKey, AppSpec, CategoryKey } from "./types";
 
 export function uid(prefix = "n") {
-  return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
+  return `${prefix}_${crypto.randomUUID()}`;
 }
 
 export function getAppSpec(key: AppKey): AppSpec {
