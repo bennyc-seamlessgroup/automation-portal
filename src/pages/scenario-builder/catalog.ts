@@ -1,5 +1,6 @@
 import type { AppSpec } from './types';
 import { GmailApp } from './apps/GmailApp';
+import { TelegramApp } from './apps/TelegramApp';
 
 // Import other app classes as they are created
 // import { SlackApp } from './apps/SlackApp';
@@ -13,6 +14,9 @@ function generateAppCatalog(): AppSpec[] {
 
   // Add Gmail app specs
   allSpecs.push(...GmailApp.getAllSpecs());
+
+  // Add Telegram app specs
+  allSpecs.push(...TelegramApp.getAllSpecs());
 
   // TODO: Add other app specs as they are implemented
   // allSpecs.push(...SlackApp.getAllSpecs());

@@ -3,6 +3,7 @@ import type { Node } from "reactflow";
 
 import type { RFData } from "../types";
 import { GmailInspector } from "./GmailInspector";
+import { TelegramInspector } from "./TelegramInspector";
 import { GenericAppInspector } from "./GenericAppInspector";
 
 type InspectorBodyProps = {
@@ -21,6 +22,18 @@ export function InspectorBody({ node, onChangeNode, onDeleteNode, onManualSave, 
   if (isApp && String(data.appKey).toLowerCase().includes("gmail")) {
     return (
       <GmailInspector
+        node={node}
+        onChangeNode={onChangeNode}
+        onDeleteNode={onDeleteNode}
+        onManualSave={onManualSave}
+        onClose={onClose}
+      />
+    );
+  }
+
+  if (isApp && String(data.appKey).toLowerCase().includes("telegram")) {
+    return (
+      <TelegramInspector
         node={node}
         onChangeNode={onChangeNode}
         onDeleteNode={onDeleteNode}

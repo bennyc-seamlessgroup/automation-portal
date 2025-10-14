@@ -17,11 +17,6 @@ export function categoryOf(appKey: AppKey): CategoryKey {
     case "gmailSend":
     case "gmailSearch":
     case "slackPost":
-    case "calendarCreate":
-    case "sheetsAddRow":
-    case "driveUpload":
-    case "outlookSend":
-    case "telegramSend":
       return "apps";
     case "aiSummarize":
     case "aiExtract":
@@ -57,5 +52,7 @@ export function categoryOf(appKey: AppKey): CategoryKey {
     case "customHeaders":
     case "customScript":
       return "custom";
+    default:
+      return "apps"; // Default fallback
   }
 }

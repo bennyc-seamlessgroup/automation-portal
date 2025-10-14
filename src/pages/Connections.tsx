@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getConnections, type Connection as ConnectionType } from "../services/connections.service";
 
 /*
   App Connections — Zapier-inspired table
@@ -9,41 +10,31 @@ import { useNavigate } from "react-router-dom";
   - Includes a prototype-only "Show empty state" toggle (bottom-right)
 */
 
-type Connection = {
-    id: string;
-    name: string;            // display name (e.g., account or bot)
-    sub: string;             // secondary line, usually email/handle
-    app: string;             // app name
-    appVersion: string;      // version string
-    scenarios: number;            // number of scenarios using this connection
-    lastModified: string;    // e.g., "1 day ago"
-    people: string[];        // initials of members with access
-    brand: "telegram" | "sheets" | "gmail";
-};
-
-const ROWS: Connection[] = [
-    { id: "c1", name: "Team Alerts Bot (@TeamAlerts01_bot)", sub: "TeamAlerts01_bot", app: "Telegram", appVersion: "1.3.1", scenarios: 1, lastModified: "1 day ago", people: ["BC"], brand: "telegram" },
-    { id: "c2", name: "benny.cheung@seamlessgroup.com", sub: "benny.cheung@seamlessgroup.com", app: "Google Sheets", appVersion: "2.8.0", scenarios: 2, lastModified: "1 day ago", people: ["BC"], brand: "sheets" },
-    { id: "c3", name: "g10260556001@gmail.com", sub: "g10260556001@gmail.com", app: "Gmail", appVersion: "2.5.1", scenarios: 1, lastModified: "1 day ago", people: ["BC"], brand: "gmail" },
-];
+type Connection = ConnectionType;
 
 export default function Connections() {
     const [q, setQ] = useState("");
     const [scope, setScope] = useState("All connections");
     const [perPage, setPerPage] = useState<25 | 50 | 100>(25);
     const [protoEmpty, setProtoEmpty] = useState(false); // prototype-only toggle
+    const [connections, setConnections] = useState<Connection[]>([]);
 
     const navigate = useNavigate();
 
+    // Load connections on mount
+    useEffect(() => {
+        setConnections(getConnections());
+    }, []);
+
     const items = useMemo(() => {
-        let out = ROWS.slice();
+        let out = connections.slice();
         if (q.trim()) {
             const t = q.toLowerCase();
             out = out.filter(r => r.name.toLowerCase().includes(t) || r.sub.toLowerCase().includes(t) || r.app.toLowerCase().includes(t));
         }
         // scope is a placeholder for now; no-op
         return out;
-    }, [q, scope]);
+    }, [connections, q, scope]);
 
     const total = items.length;
 

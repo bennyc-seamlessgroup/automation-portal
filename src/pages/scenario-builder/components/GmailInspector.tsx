@@ -363,15 +363,20 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
       {/* Step indicator */}
       <div style={{
         display: "flex",
-        alignItems: "center",
+        flexDirection: "column",
         marginBottom: 24,
         padding: "16px",
         background: "#f8fafc",
         borderRadius: "8px",
-        border: "1px solid #e2e8f0"
+        border: "1px solid #e2e8f0",
+        gap: "16px"
       }}>
         {steps.map((step, index) => (
-          <div key={step.id} style={{ display: "flex", alignItems: "center", flex: 1, position: "relative" }}>
+          <div key={step.id} style={{
+            display: "flex",
+            alignItems: "center",
+            position: "relative"
+          }}>
             <div style={{
               display: "flex",
               alignItems: "center",
@@ -383,8 +388,10 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
               color: currentStep >= step.id ? "#fff" : "#64748b",
               fontSize: "14px",
               fontWeight: "600",
-              marginRight: "12px",
-              position: "relative"
+              marginRight: "16px",
+              position: "relative",
+              flexShrink: 0,
+              zIndex: 2
             }}>
               <span>{step.id}</span>
               {step.id === 1 && isConnected && (
@@ -397,7 +404,7 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
                   background: "#10b981",
                   borderRadius: "50%",
                   border: "2px solid #fff",
-                  zIndex: 1
+                  zIndex: 3
                 }} />
               )}
               {step.id === 2 && (localValues["mailbox"] as string) && (localValues["mailbox"] as string).trim() !== "" && (
@@ -410,34 +417,41 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onMa
                   background: "#10b981",
                   borderRadius: "50%",
                   border: "2px solid #fff",
-                  zIndex: 1
+                  zIndex: 3
                 }} />
               )}
             </div>
+
+            {/* Vertical connector line */}
+            {index < steps.length - 1 && (
+              <div style={{
+                position: "absolute",
+                left: "16px",
+                top: "32px",
+                width: "2px",
+                height: "24px",
+                background: currentStep > step.id ? "#2563eb" : "#e2e8f0",
+                zIndex: 1
+              }} />
+            )}
+
             <div style={{ flex: 1 }}>
               <div style={{
                 fontSize: "14px",
                 fontWeight: currentStep === step.id ? "600" : "500",
                 color: currentStep >= step.id ? "#1e293b" : "#64748b",
-                marginBottom: "2px"
+                marginBottom: "4px"
               }}>
                 {step.title}
               </div>
               <div style={{
                 fontSize: "12px",
-                color: currentStep >= step.id ? "#475569" : "#94a3b8"
+                color: currentStep >= step.id ? "#475569" : "#94a3b8",
+                lineHeight: "1.4"
               }}>
                 {step.description}
               </div>
             </div>
-            {index < steps.length - 1 && (
-              <div style={{
-                width: "40px",
-                height: "2px",
-                background: currentStep > step.id ? "#2563eb" : "#e2e8f0",
-                margin: "0 16px"
-              }} />
-            )}
           </div>
         ))}
       </div>

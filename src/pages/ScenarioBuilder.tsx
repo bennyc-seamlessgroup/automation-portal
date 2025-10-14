@@ -21,10 +21,10 @@ import { useScenarios } from "../state";
 import type { Scenario } from "../types/scenarios";
 import type { RFData } from "./scenario-builder/types";
 import {
-  ADD_NEXT_EVENT,
   NODE_H,
   NODE_W,
   VERSIONS_KEY,
+  ADD_NEXT_EVENT,
 } from "./scenario-builder/constants";
 import { builderStyles } from "./scenario-builder/styles";
 import { getAppSpec, uid } from "./scenario-builder/utils";
@@ -85,7 +85,14 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [interval, setIntervalStr] = useState<"15m" | "1h" | "1d">("15m");
   const [savingFlash, setSavingFlash] = useState<null | string>(null);
-  const [autosaveEnabled, setAutosaveEnabled] = useState(true);
+  const [autosaveEnabled, setAutosaveEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("scenarioBuilder_autosaveEnabled");
+      return saved !== null ? JSON.parse(saved) : true; // Default to true if not set
+    } catch {
+      return true; // Default to true if localStorage fails
+    }
+  });
 
   // --- Notes / settings / IO modals ---
   const [notes, setNotes] = useState<string>("");
@@ -178,7 +185,16 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
     [setUndo]
   );
 
-  // anchored + clicks
+  // Save autosave setting to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem("scenarioBuilder_autosaveEnabled", JSON.stringify(autosaveEnabled));
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [autosaveEnabled]);
+
+  // Listen for plus button clicks on nodes to open function picker
   useEffect(() => {
     const onAddNext = (e: CustomEvent<{ id: string }>) => {
       const sourceId = e.detail?.id;
@@ -187,15 +203,6 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
     window.addEventListener(ADD_NEXT_EVENT, onAddNext as EventListener);
     return () =>
       window.removeEventListener(ADD_NEXT_EVENT, onAddNext as EventListener);
-  }, []);
-
-  // Prevent auto-opening drawer on initial load
-  useEffect(() => {
-    suppressOpenRef.current = true;
-    // Re-enable opening after state settles
-    setTimeout(() => {
-      suppressOpenRef.current = false;
-    }, 200);
   }, []);
 
   // init with Initial node (centered)
