@@ -11,10 +11,10 @@ type TelegramInspectorProps = {
   onChangeNode: (node: Node<RFData>) => void;
   onDeleteNode: (id: string) => void;
   onClose?: () => void;
-  onManualSave?: () => void;
+  onShowAlert?: (message: string) => void;
 };
 
-export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, onManualSave }: TelegramInspectorProps) {
+export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, onShowAlert }: TelegramInspectorProps) {
   const isApp = node.type === "app";
   const data = (node.data || {}) as RFData;
   const appKey = (data.appKey as AppKey) || ("" as AppKey);
@@ -90,7 +90,9 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
       }
     } catch (error) {
       console.error("Failed to connect to Telegram bot:", error);
-      alert(`Failed to connect to bot: ${error instanceof Error ? error.message : "Unknown error"}`);
+      if (onShowAlert) {
+        onShowAlert(`Failed to connect to bot: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
     } finally {
       setIsConnecting(false);
     }
@@ -179,14 +181,18 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
 
       if (data.ok) {
         setHasTested(true);
-        alert("✅ Test message sent successfully! Check your Telegram chat.");
+        if (onShowAlert) {
+          onShowAlert("✅ Test message sent successfully! Check your Telegram chat.");
+        }
       } else {
         throw new Error(data.description || "Failed to send test message");
       }
     } catch (error) {
       console.error("Failed to send test message:", error);
       setTestError(error instanceof Error ? error.message : "Failed to send test message");
-      alert(`❌ Failed to send test message: ${error instanceof Error ? error.message : "Unknown error"}`);
+      if (onShowAlert) {
+        onShowAlert(`❌ Failed to send test message: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
     } finally {
       setIsTesting(false);
     }
@@ -196,7 +202,9 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
     // Check if bot token is provided (use localValues instead of data.values for immediate feedback)
     const botToken = (localValues?.botToken as string) || "";
     if (!botToken || botToken.trim() === "") {
-      alert("Please enter your Bot Token before connecting.");
+      if (onShowAlert) {
+        onShowAlert("Please enter your Bot Token before connecting.");
+      }
       return;
     }
 
@@ -210,12 +218,16 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
     const messageText = (localValues?.messageText as string) || "";
 
     if (!chatId || chatId.trim() === "" || chatId === "Select Chat...") {
-      alert("Please select a Chat ID before continuing.");
+      if (onShowAlert) {
+        onShowAlert("Please select a Chat ID before continuing.");
+      }
       return;
     }
 
     if (!messageText || messageText.trim() === "") {
-      alert("Please enter a message text before continuing.");
+      if (onShowAlert) {
+        onShowAlert("Please enter a message text before continuing.");
+      }
       return;
     }
 
@@ -275,11 +287,6 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
     // Apply all local values to node data and trigger save
     setData({ values: localValues });
 
-    // Trigger manual save if provided
-    if (onManualSave) {
-      onManualSave();
-    }
-
     // Close the window
     if (onClose) {
       onClose();
@@ -307,7 +314,12 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
 
       return (
         <div key={field.key} style={{ marginTop: 10 }}>
-          <div style={builderStyles.formLabel}>{field.label} *</div>
+          <div style={builderStyles.formLabel}>
+            {field.label}
+            {field.label.includes("*") && (
+              <span style={{ color: "#dc2626" }}>*</span>
+            )}
+          </div>
 
           {/* Chat selection dropdown */}
           <select
@@ -384,7 +396,12 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
 
       return (
         <div key={field.key} style={{ marginTop: 10 }}>
-          <div style={builderStyles.formLabel}>{field.label} *</div>
+          <div style={builderStyles.formLabel}>
+            {field.label}
+            {field.label.includes("*") && (
+              <span style={{ color: "#dc2626" }}>*</span>
+            )}
+          </div>
           <textarea
             style={{
               ...builderStyles.input,
@@ -726,7 +743,34 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
           {(existingConnections.length === 0 || showNewTokenInput) && (
             <>
               <div style={{ marginTop: 12 }}>
-                <div style={builderStyles.formLabel}>Bot Token *</div>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "4px"
+                }}>
+                  <div style={builderStyles.formLabel}>Bot Token *</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onShowAlert) {
+                        onShowAlert("To create a new Telegram bot:\n\n1. Open Telegram and search for @BotFather\n2. Send /newbot to BotFather\n3. Choose a name for your bot\n4. Choose a username for your bot (ending with 'bot')\n5. Copy the token provided by BotFather\n\nFor detailed instructions, visit: https://core.telegram.org/bots/features#creating-a-new-bot");
+                      }
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#2563eb",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                      padding: "0"
+                    }}
+                    title="How to create a new bot"
+                  >
+                    How to create a new bot?
+                  </button>
+                </div>
                 <input
                   style={{
                     ...builderStyles.input,

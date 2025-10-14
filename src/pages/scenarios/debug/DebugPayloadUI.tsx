@@ -28,7 +28,7 @@ export default function DebugPayloadUI() {
       const ce = e as CustomEvent<DebugEvent>;
       setEvent(ce.detail);
       setOpen(true);
-      // eslint-disable-next-line no-console
+       
       console.log("[DEBUG-PAYLOAD]", ce.detail);
     };
     window.addEventListener("__debug_payload__", onDebug as EventListener);

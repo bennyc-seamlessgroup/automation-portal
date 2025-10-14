@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import type { Node } from "reactflow";
-
 import type { AppKey, AppSpec, RFData } from "../types";
 import { builderStyles } from "../styles";
 import { getAppSpec } from "../utils";
@@ -10,9 +9,10 @@ type GmailInspectorProps = {
   onChangeNode: (node: Node<RFData>) => void;
   onDeleteNode: (id: string) => void;
   onClose?: () => void;
+  onShowAlert?: (message: string) => void;
 };
 
-export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose }: GmailInspectorProps) {
+export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onShowAlert }: GmailInspectorProps) {
   const isApp = node.type === "app";
   const data = (node.data || {}) as RFData;
   const appKey = (data.appKey as AppKey) || ("" as AppKey);
@@ -56,7 +56,9 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose }: Gm
     // Check if mail folder is selected (required field)
     const mailFolder = localValues["mailbox"] as string;
     if (!mailFolder || mailFolder.trim() === "") {
-      alert("Please select a mail folder to watch before continuing.");
+      if (onShowAlert) {
+        onShowAlert("Please select a mail folder to watch before continuing.");
+      }
       return;
     }
 
@@ -86,7 +88,9 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose }: Gm
       setHasTested(true);
     } catch (error) {
       console.error("Failed to test Gmail connection:", error);
-      alert(`❌ Gmail connection test failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      if (onShowAlert) {
+        onShowAlert(`❌ Gmail connection test failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
     } finally {
       setIsTesting(false);
     }
@@ -127,7 +131,7 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose }: Gm
     let displayLabel = field.label;
     let options = field.options ?? [];
     if (normalizedLabel === "email category") {
-      displayLabel = "Mail folder to watch *";
+      displayLabel = "Mail folder to watch";
       if (!options.map((o) => o.toLowerCase()).includes("all mail")) {
         options = ["All mail", ...options];
       }
@@ -137,7 +141,12 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose }: Gm
 
     return (
       <div key={field.key} style={{ marginTop: 10 }}>
-        <div style={builderStyles.formLabel}>{displayLabel}</div>
+        <div style={builderStyles.formLabel}>
+          {displayLabel}
+          {displayLabel.includes("*") && (
+            <span style={{ color: "#dc2626" }}>*</span>
+          )}
+        </div>
         {field.type === "select" ? (
           <select
             style={{

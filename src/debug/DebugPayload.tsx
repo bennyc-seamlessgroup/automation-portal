@@ -41,7 +41,7 @@ export function DebugPayloadUI() {
       const ce = e as CustomEvent<DebugEvent>;
       setEvent(ce.detail);
       setOpen(true);
-      // eslint-disable-next-line no-console
+       
       console.log("[DEBUG-PAYLOAD]", ce.detail);
     };
     window.addEventListener("__debug_payload__", onDebug as EventListener);
@@ -53,10 +53,10 @@ export function DebugPayloadUI() {
     const json = JSON.stringify(event, null, 2);
     try {
       await navigator.clipboard.writeText(json);
-      // eslint-disable-next-line no-alert
+       
       alert("Copied JSON to clipboard.");
     } catch {
-      // eslint-disable-next-line no-alert
+       
       alert("Copy failed. Please copy manually.");
     }
   };

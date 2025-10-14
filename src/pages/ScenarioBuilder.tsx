@@ -42,7 +42,7 @@ import { Tooltip } from "./scenario-builder/components/Tooltip";
 import { LogWindow } from "./scenario-builder/components/LogWindow";
 import type { LogEntry } from "./scenario-builder/components/LogWindow";
 import { ConfirmDialog } from "./scenario-builder/components/ConfirmDialog";
-import { Modal } from "./scenario-builder/components/Modal";
+import { Modal, AlertModal } from "./scenario-builder/components/Modal";
 
 /** NODES */
 const nodeTypes: NodeTypes = { initial: InitialNode, app: AppNode };
@@ -120,6 +120,15 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
     message: "",
     onConfirm: () => {},
     onCancel: () => {},
+  });
+
+  // --- Alert modal ---
+  const [alertModal, setAlertModal] = useState<{
+    open: boolean;
+    message: string;
+  }>({
+    open: false,
+    message: "",
   });
 
   // --- Log system ---
@@ -1580,7 +1589,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                 },
               });
             }}
-            onManualSave={handleSave}
+            onShowAlert={(message) => setAlertModal({ open: true, message })}
             onClose={handleCloseDrawer}
           />
         ) : (
@@ -1950,6 +1959,14 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
         onConfirm={confirmDialog.onConfirm}
         onCancel={confirmDialog.onCancel}
       />
+
+      {/* Alert Modal */}
+      {alertModal.open && (
+        <AlertModal
+          message={alertModal.message}
+          onClose={() => setAlertModal({ open: false, message: "" })}
+        />
+      )}
 
       {/* Debug UI */}
       <div style={{

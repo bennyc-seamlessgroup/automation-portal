@@ -10,11 +10,11 @@ type InspectorBodyProps = {
   node: Node<RFData>;
   onChangeNode: (node: Node<RFData>) => void;
   onDeleteNode: (id: string) => void;
-  onManualSave?: () => void;
   onClose?: () => void;
+  onShowAlert?: (message: string) => void;
 };
 
-export function InspectorBody({ node, onChangeNode, onDeleteNode, onManualSave, onClose }: InspectorBodyProps) {
+export function InspectorBody({ node, onChangeNode, onDeleteNode, onClose, onShowAlert }: InspectorBodyProps) {
   const isApp = node.type === "app";
   const data = (node.data || {}) as RFData;
 
@@ -25,8 +25,8 @@ export function InspectorBody({ node, onChangeNode, onDeleteNode, onManualSave, 
         node={node}
         onChangeNode={onChangeNode}
         onDeleteNode={onDeleteNode}
-        onManualSave={onManualSave}
         onClose={onClose}
+        onShowAlert={onShowAlert}
       />
     );
   }
@@ -37,8 +37,8 @@ export function InspectorBody({ node, onChangeNode, onDeleteNode, onManualSave, 
         node={node}
         onChangeNode={onChangeNode}
         onDeleteNode={onDeleteNode}
-        onManualSave={onManualSave}
         onClose={onClose}
+        onShowAlert={onShowAlert}
       />
     );
   }
