@@ -13,6 +13,7 @@ export function getAppSpec(key: AppKey): AppSpec {
 
 export function categoryOf(appKey: AppKey): CategoryKey {
   switch (appKey) {
+    case "gmailNewEmail":
     case "gmailSend":
     case "gmailSearch":
     case "slackPost":

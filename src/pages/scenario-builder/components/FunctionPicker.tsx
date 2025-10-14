@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { APP_CATALOG } from "../catalog";
 import { categoryOf } from "../utils";
@@ -30,10 +30,12 @@ export function FunctionPicker({ open, onPick, onClose, initialCategory = "apps"
         _category: categoryOf(a.key),
         _tags: [
           a.key === "webhook" ? "Trigger" : undefined,
+          a.key === "gmailNewEmail" ? "Trigger" : undefined,
           a.key === "delay" ? "Flow" : undefined,
           ["http", "formatter", "code", "files", "emailParser"].includes(a.key) ? "Utility" : undefined,
           [
             "gmailSend",
+            "gmailSearch",
             "slackPost",
             "calendarCreate",
             "sheetsAddRow",

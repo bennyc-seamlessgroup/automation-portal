@@ -1,5 +1,5 @@
 // src/pages/Scenarios.tsx
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Shared data layer (Phase 2-ready)
@@ -28,6 +28,12 @@ export default function Scenarios() {
   // Data + nav
   const navigate = useNavigate();
   const { scenarios, save, remove, refresh } = useScenarios();
+
+  // Ensure scenarios are loaded when component mounts
+  useEffect(() => {
+    console.log('[Scenarios] Component mounted, calling refresh...');
+    refresh();
+  }, [refresh]);
 
   // Derived: filtered items
   const items = useMemo(() => {

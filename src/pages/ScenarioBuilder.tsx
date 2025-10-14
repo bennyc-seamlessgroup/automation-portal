@@ -85,6 +85,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [interval, setIntervalStr] = useState<"15m" | "1h" | "1d">("15m");
   const [savingFlash, setSavingFlash] = useState<null | string>(null);
+  const [autosaveEnabled, setAutosaveEnabled] = useState(true);
 
   // --- Notes / settings / IO modals ---
   const [notes, setNotes] = useState<string>("");
@@ -358,18 +359,19 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
     [nodes, edges, scenarioName, notes]
   );
 
+  // Setup autosave for all data changes (only when enabled and not a new scenario)
   const { isSaving: isAutosaving, lastSaved: lastAutosaveTime } = useAutosave(
     scenarioData,
-    unifiedSave,
+    (autosaveEnabled && (scenarioId !== "new" && savedId)) ? unifiedSave : () => {}, // No-op function when autosave is disabled or for new scenarios
     2000 // 2 second debounce
   );
 
-  // Update autosave status
+  // Update autosave status (only log when actual autosave occurred)
   useEffect(() => {
-    if (lastAutosaveTime) {
+    if (lastAutosaveTime && autosaveEnabled && (scenarioId !== "new" && savedId)) {
       console.log(`Autosave completed at ${lastAutosaveTime}`);
     }
-  }, [isAutosaving, lastAutosaveTime]);
+  }, [isAutosaving, lastAutosaveTime, autosaveEnabled, scenarioId, savedId]);
 
   const onConnect: OnConnect = useCallback(
     (params: Connection) => {
@@ -1039,7 +1041,10 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
           if (typeof obj.scheduleEnabled === "boolean")
             setScheduleEnabled(obj.scheduleEnabled);
           if (obj.interval) setIntervalStr(obj.interval);
-          handleSave();
+          // Only save if this is not a new scenario
+          if (scenarioId !== "new") {
+            handleSave();
+          }
         } else {
           alert("Invalid blueprint file.");
         }
@@ -1181,6 +1186,21 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
             {/* Top action bar (Zapier-like) */}
             <div style={builderStyles.topActionBar as React.CSSProperties}>
               <Tooltip
+                text="Manual Save"
+                id="manual-save-btn"
+                hoveredId={hoveredButton}
+                onHover={setHoveredButton}
+              >
+                <button
+                  style={builderStyles.pillBtn as React.CSSProperties}
+                  className="d-inline-flex align-items-center gap-2"
+                  onClick={() => handleSave()}
+                >
+                  <i className="bi bi-floppy" aria-hidden="true" />
+                  Save
+                </button>
+              </Tooltip>
+              <Tooltip
                 text="Undo"
                 id="undo-btn"
                 hoveredId={hoveredButton}
@@ -1310,7 +1330,9 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                       checked={scheduleEnabled}
                       onChange={(e) => {
                         setScheduleEnabled(e.target.checked);
-                        setTimeout(() => handleSave(), 100);
+                        if (scenarioId !== "new") {
+                          setTimeout(() => handleSave(), 100);
+                        }
                       }}
                     />
                     <span style={{ fontSize: 13, lineHeight: "18px" }}>
@@ -1322,7 +1344,9 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                       value={interval}
                       onChange={(e) => {
                         setIntervalStr(e.target.value as "15m" | "1h" | "1d");
-                        setTimeout(() => handleSave(), 100);
+                        if (scenarioId !== "new") {
+                          setTimeout(() => handleSave(), 100);
+                        }
                       }}
                       style={{
                         border: "1px solid #e5e7eb",
@@ -1549,6 +1573,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                 },
               });
             }}
+            onManualSave={handleSave}
+            onClose={handleCloseDrawer}
           />
         ) : (
           <div
@@ -1632,8 +1658,10 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
           setPickerFor(null);
           setSelectedId(id);
           setDrawerOpen(true);
-          // Auto-save when new node is added
-          setTimeout(() => handleSave(), 100);
+          // Auto-save when new node is added (only for existing scenarios)
+          if (scenarioId !== "new") {
+            setTimeout(() => handleSave(), 100);
+          }
 
           // Debug payload for node creation - Enhanced with full state snapshot and diff info for backend team
           emitDebugPayload("scenarioBuilder.node.create", {
@@ -1725,8 +1753,10 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                 value={scenarioName}
                 onChange={(e) => {
                   setScenarioName(e.target.value);
-                  // Auto-save when scenario name changes
-                  setTimeout(() => handleSave(), 100);
+                  // Auto-save when scenario name changes (only for existing scenarios)
+                  if (scenarioId !== "new") {
+                    setTimeout(() => handleSave(), 100);
+                  }
                 }}
               />
             </div>
@@ -1737,8 +1767,10 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                   checked={scheduleEnabled}
                   onChange={(e) => {
                     setScheduleEnabled(e.target.checked);
-                    // Auto-save when schedule changes
-                    setTimeout(() => handleSave(), 100);
+                    // Auto-save when schedule changes (only for existing scenarios)
+                    if (scenarioId !== "new") {
+                      setTimeout(() => handleSave(), 100);
+                    }
                   }}
                 />
                 <span>Enable schedule</span>
@@ -1748,8 +1780,10 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                   value={interval}
                   onChange={(e) => {
                     setIntervalStr(e.target.value as "15m" | "1h" | "1d");
-                    // Auto-save when schedule changes
-                    setTimeout(() => handleSave(), 100);
+                    // Auto-save when schedule changes (only for existing scenarios)
+                    if (scenarioId !== "new") {
+                      setTimeout(() => handleSave(), 100);
+                    }
                   }}
                   style={
                     {
@@ -1911,6 +1945,49 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
       />
 
       {/* Debug UI */}
+      <div style={{
+        position: "fixed",
+        bottom: 16,
+        right: 16,
+        display: "flex",
+        gap: "8px",
+        alignItems: "center",
+        background: "#f8f9fa",
+        border: "1px solid #e9ecef",
+        borderRadius: "8px",
+        padding: "8px 12px",
+        fontSize: "12px",
+        color: "#6c757d",
+        zIndex: 1000
+      }}>
+        <span>Autosave:</span>
+        <div
+          onClick={() => setAutosaveEnabled(!autosaveEnabled)}
+          style={{
+            position: "relative",
+            width: "40px",
+            height: "20px",
+            background: autosaveEnabled ? "#28a745" : "#6c757d",
+            borderRadius: "10px",
+            cursor: "pointer",
+            transition: "background-color 0.2s"
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "2px",
+              left: autosaveEnabled ? "22px" : "2px",
+              width: "16px",
+              height: "16px",
+              background: "white",
+              borderRadius: "50%",
+              transition: "left 0.2s",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+            }}
+          />
+        </div>
+      </div>
       <DebugPayloadUI />
     </div>
   );

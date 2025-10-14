@@ -1,4 +1,4 @@
-﻿import type { NodeProps } from "reactflow";
+import type { NodeProps } from "reactflow";
 
 import type { AppKey, RFData } from "../types";
 import { ICON_H, ICON_W } from "../constants";

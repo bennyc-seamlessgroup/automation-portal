@@ -14,12 +14,14 @@ import { saveScenarioLocal } from "./fns/saveScenario.local";
 
 export const service: ScenariosService = {
   async list(params: ScenarioListParams): Promise<ScenarioListResult> {
+    console.log(`[ScenariosService] list() called with params:`, params);
     return STORAGE_MODE === "api"
       ? (await import("./fns/listScenarios.api.ts")).listScenariosApi(params)
       : listScenariosLocal(params);
   },
 
   async get(id: string): Promise<Scenario> {
+    console.log(`[ScenariosService] get() called with id: ${id}`);
     if (STORAGE_MODE === "api") {
       const { getScenarioApi } = await import("./fns/getScenario.api.ts");
       return getScenarioApi(id);
@@ -33,12 +35,14 @@ export const service: ScenariosService = {
   },
 
   async create(input: Partial<Scenario>): Promise<Scenario> {
+    console.log(`[ScenariosService] create() called with input:`, input);
     return STORAGE_MODE === "api"
       ? (await import("./fns/createScenario.api.ts")).createScenarioApi(input as any)
       : createScenarioLocal(input as any);
   },
 
   async update(id: string, patch: Partial<Scenario>): Promise<Scenario> {
+    console.log(`[ScenariosService] update() called with id: ${id}, patch:`, patch);
     if (STORAGE_MODE === "api") {
       const { updateScenarioApi } = await import("./fns/updateScenario.api.ts");
       return updateScenarioApi(id, patch);
@@ -52,6 +56,7 @@ export const service: ScenariosService = {
   },
 
   async remove(id: string): Promise<void> {
+    console.log(`[ScenariosService] remove() called with id: ${id}`);
     if (STORAGE_MODE === "api") {
       const { deleteScenarioApi } = await import("./fns/deleteScenario.api.ts");
       return deleteScenarioApi(id);
@@ -64,6 +69,7 @@ export const service: ScenariosService = {
   },
 
   async setStatus(id: string, status: ScenarioStatus): Promise<Scenario> {
+    console.log(`[ScenariosService] setStatus() called with id: ${id}, status: ${status}`);
     if (STORAGE_MODE === "api") {
       const { setStatusApi } = await import("./fns/setStatus.api.ts");
       return setStatusApi(id, status);
@@ -77,12 +83,14 @@ export const service: ScenariosService = {
   },
 
   async save(record: Scenario): Promise<Scenario> {
+    console.log(`[ScenariosService] save() called with record id: ${record.id}`);
     return STORAGE_MODE === "api"
       ? (await import("./fns/saveScenario.api.ts")).saveScenarioApi(record)
       : saveScenarioLocal(record);
   },
 
   async snapshot(_id: string, _note?: string): Promise<{ snapshotId: string }> {
+    console.log(`[ScenariosService] snapshot() called with id: ${_id}, note: ${_note}`);
     // This would need to be implemented for both API and local
     throw { code: "UNKNOWN", message: "Snapshot not implemented" };
   },

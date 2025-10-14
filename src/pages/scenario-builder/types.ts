@@ -1,17 +1,17 @@
 export type CategoryKey = "apps" | "ai" | "flow" | "utilities" | "products" | "custom";
 
 export type AppKey =
-  // Apps (�%�5)
-  | "gmailSend" | "gmailSearch" | "slackPost" | "calendarCreate" | "sheetsAddRow" | "driveUpload" | "outlookSend" | "telegramSend"
-  // AI (�%�5)
+  // Apps (Gmail)
+  | "gmailNewEmail" | "gmailSend" | "gmailSearch" | "slackPost" | "calendarCreate" | "sheetsAddRow" | "driveUpload" | "outlookSend" | "telegramSend"
+  // AI
   | "aiSummarize" | "aiExtract" | "aiClassify" | "aiTranslate" | "aiTranscribe" | "aiSearch"
-  // Flow controls (�%�5)
+  // Flow controls
   | "delay" | "schedule" | "paths" | "filter" | "loop" | "humanLoop"
-  // Utilities (�%�5)
+  // Utilities
   | "webhook" | "http" | "formatter" | "code" | "emailParser" | "files"
-  // Products (�%�5)
+  // Products
   | "prodTablesQuery" | "prodTablesInsert" | "prodTablesUpdate" | "prodInterfacesOpen" | "prodChatbotsSend" | "prodAgentsRun"
-  // Custom (�%�5)
+  // Custom
   | "customWebhook" | "customAction" | "customAuth" | "customHeaders" | "customScript";
 
 export type RFData = {
