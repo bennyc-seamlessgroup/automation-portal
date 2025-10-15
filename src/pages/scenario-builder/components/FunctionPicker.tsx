@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useContext } from "react";
 
-import { APP_CATALOG } from "../catalog";
 import { categoryOf } from "../utils";
 import type { AppKey, CategoryKey } from "../types";
 import { Badge } from "./Badge";
+import AppSkeletonGrid from "./AppSkeletonGrid";
+import { AppsContext } from "../../../state/AppsContext.context";
 
 type FunctionPickerProps = {
   open: boolean;
@@ -15,17 +16,23 @@ type FunctionPickerProps = {
 export function FunctionPicker({ open, onPick, onClose, initialCategory = "apps" }: FunctionPickerProps) {
   const [active, setActive] = useState<CategoryKey>(initialCategory);
   const [q, setQ] = useState("");
+  const { apps, isLoading, refresh } = useContext(AppsContext) || { apps: [], isLoading: false, refresh: async () => {} };
+
+  console.log('[FunctionPicker] Context data:', { appsCount: apps.length, isLoading, open, sampleApps: apps.slice(0, 2) });
 
   useEffect(() => {
     if (open) {
+      console.log('[FunctionPicker] Opening picker, calling refresh');
       setActive(initialCategory);
       setQ("");
+      // Refresh apps data when picker opens - this will trigger loading state
+      refresh();
     }
-  }, [open, initialCategory]);
+  }, [open, initialCategory, refresh]);
 
   const items = useMemo(
     () =>
-      APP_CATALOG.map((a) => ({
+      apps.map((a) => ({
         ...a,
         _category: categoryOf(a.key),
         _tags: [
@@ -50,7 +57,7 @@ export function FunctionPicker({ open, onPick, onClose, initialCategory = "apps"
           a.key.startsWith("custom") ? "Custom" : undefined,
         ].filter(Boolean) as string[],
       })),
-    []
+    [apps]
   );
 
   const filtered = useMemo(() => {
@@ -163,54 +170,77 @@ export function FunctionPicker({ open, onPick, onClose, initialCategory = "apps"
               />
               <i className="bi bi-search" style={{ position: "absolute", top: 10, left: 10, opacity: 0.6 }} aria-hidden="true" />
             </div>
-            <span style={{ fontSize: 13, opacity: 0.6 }}>
-              {filtered.length} result{filtered.length === 1 ? "" : "s"}
-            </span>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ fontSize: 13, opacity: 0.6 }}>
+                {isLoading ? "Loading..." : `${filtered.length} result${filtered.length === 1 ? "" : "s"}`}
+              </span>
+              <button
+                onClick={() => refresh()}
+                disabled={isLoading}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #e5e7eb",
+                  background: "#fff",
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                  opacity: isLoading ? 0.5 : 1,
+                  fontSize: 12,
+                }}
+                title="Refresh app list"
+              >
+                <i className="bi bi-arrow-clockwise" style={{ marginRight: 4 }} />
+                Refresh
+              </button>
+            </div>
           </div>
           <div style={{ overflow: "auto", border: "1px solid #eee", borderRadius: 12, padding: 8, flex: 1 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
-              {filtered.map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => onPick(f.key)}
-                  style={{
-                    textAlign: "left",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 12,
-                    padding: 12,
-                    background: "#fff",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 6,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: "50%",
-                        background: f.color,
-                        color: "#fff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 16,
-                      }}
-                    >
-                      {f.icon ?? ""}
-                    </span>
-                    <div style={{ fontWeight: 600 }}>{f.name}</div>
-                  </div>
-                  <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                    {f._tags.map((t) => (
-                      <Badge key={t}>{t}</Badge>
-                    ))}
-                  </div>
-                </button>
-              ))}
-            </div>
+            {isLoading ? (
+              <AppSkeletonGrid count={6} />
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
+                {filtered.map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => onPick(f.key)}
+                    style={{
+                      textAlign: "left",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 12,
+                      padding: 12,
+                      background: "#fff",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          background: f.color,
+                          color: "#fff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 16,
+                        }}
+                      >
+                        {f.icon ?? ""}
+                      </span>
+                      <div style={{ fontWeight: 600 }}>{f.name}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                      {f._tags.map((t) => (
+                        <Badge key={t}>{t}</Badge>
+                      ))}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div style={{ marginTop: 8, fontSize: 12, opacity: 0.6 }}>
             Tip: Press <kbd>Esc</kbd> to close. Click a card to attach the function to your node.

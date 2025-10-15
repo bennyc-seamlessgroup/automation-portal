@@ -19,20 +19,28 @@ const Dashboard = lazy(() => import('./pages/Dashboard'))
 
 // 🔧 state context for scenarios (lightweight data layer)
 import { ScenariosProvider, ScenariosContext } from './state/ScenariosContext'
+import { AppsProvider, AppsContext } from './state/AppsContext'
 import type { ScenariosContextType } from './state/ScenariosContext.context'
+import type { AppsContextType } from './state/AppsContext.context'
 
 // Background preloader component
 const BackgroundPreloader: React.FC = () => {
   const location = useLocation();
   const scenariosContext = React.useContext(ScenariosContext) as ScenariosContextType | null;
+  const appsContext = React.useContext(AppsContext) as AppsContextType | null;
 
   useEffect(() => {
     // Trigger background preloading when navigating from login to dashboard
-    if (location.pathname === '/dashboard' && scenariosContext?.preload) {
-      console.log('[App] Background preloading scenarios after login...');
-      scenariosContext.preload();
+    if (location.pathname === '/dashboard') {
+      console.log('[App] Background preloading scenarios and apps after login...');
+      if (scenariosContext?.preload) {
+        scenariosContext.preload();
+      }
+      if (appsContext?.preload) {
+        appsContext.preload();
+      }
     }
-  }, [location.pathname, scenariosContext]);
+  }, [location.pathname, scenariosContext, appsContext]);
 
   return null;
 };
@@ -54,44 +62,46 @@ export default function App() {
 
   return (
     <ScenariosProvider>
-      <BackgroundPreloader />
-      <div className="app-grid">
-        {!isLoginPage && <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
-        {!isLoginPage && <Topbar onHamburger={() => setSidebarOpen(s => !s)} />}
+      <AppsProvider>
+        <BackgroundPreloader />
+        <div className="app-grid">
+          {!isLoginPage && <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
+          {!isLoginPage && <Topbar onHamburger={() => setSidebarOpen(s => !s)} />}
 
-        <main className="app-content">
-          <Suspense fallback={<div>Loading…</div>}>
-            <Routes>
-              {/* default to login */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
+          <main className="app-content">
+            <Suspense fallback={<div>Loading…</div>}>
+              <Routes>
+                {/* default to login */}
+                <Route path="/" element={<Navigate to="/login" replace />} />
 
-              {/* auth / main */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+                {/* auth / main */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/dashboard" element={<Dashboard />} />
 
-              {/* scenarios list + builder */}
-              <Route path="/scenarios" element={<Scenarios />} />
-              <Route path="/scenarios/new" element={<ScenarioBuilder />} />
-              {/* edit routes (both forms supported) */}
-              <Route path="/scenarios/:id" element={<ScenarioBuilder />} />
-              <Route path="/scenarios/:id/edit" element={<ScenarioBuilder />} />
+                {/* scenarios list + builder */}
+                <Route path="/scenarios" element={<Scenarios />} />
+                <Route path="/scenarios/new" element={<ScenarioBuilder />} />
+                {/* edit routes (both forms supported) */}
+                <Route path="/scenarios/:id" element={<ScenarioBuilder />} />
+                <Route path="/scenarios/:id/edit" element={<ScenarioBuilder />} />
 
-              {/* other sections */}
-              <Route path="/templates" element={<Templates />} />
-              <Route path="/data-stores" element={<DataStores />} />
-              <Route path="/connections" element={<Connections />} />
-              <Route path="/apps" element={<Apps />} />
-              <Route path="/webhooks" element={<Webhooks />} />
-              <Route path="/teams" element={<Teams />} />
-              <Route path="/billing" element={<Billing />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/help" element={<Help />} />
-            </Routes>
-          </Suspense>
-        </main>
+                {/* other sections */}
+                <Route path="/templates" element={<Templates />} />
+                <Route path="/data-stores" element={<DataStores />} />
+                <Route path="/connections" element={<Connections />} />
+                <Route path="/apps" element={<Apps />} />
+                <Route path="/webhooks" element={<Webhooks />} />
+                <Route path="/teams" element={<Teams />} />
+                <Route path="/billing" element={<Billing />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/help" element={<Help />} />
+              </Routes>
+            </Suspense>
+          </main>
 
-        {/* debug overlay removed globally */}
-      </div>
+          {/* debug overlay removed globally */}
+        </div>
+      </AppsProvider>
     </ScenariosProvider>
   )
 }
