@@ -64,7 +64,7 @@ export default function ScenarioBuilder() {
 }
 
 function EditorShell({ scenarioId }: { scenarioId: string | null }) {
-  const { save, get } = useScenarios();
+  const { save, get, isLoading: scenariosLoading } = useScenarios();
   const [nodes, setNodes, onNodesChange] = useNodesState<RFData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<RFData>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -96,6 +96,18 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
   // --- Notes / settings / IO modals ---
   const [notes, setNotes] = useState<string>("");
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // Show loading screen for 3 seconds on initial mount to ensure visibility
+  useEffect(() => {
+    console.log('[ScenarioBuilder] Component mounted, showing loading screen');
+    const timer = setTimeout(() => {
+      console.log('[ScenarioBuilder] Hiding loading screen after 3 seconds');
+      setIsInitialLoading(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
   const [showExplain, setShowExplain] = useState(false);
   const [showIO, setShowIO] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -1095,6 +1107,47 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
     <div
       style={{ display: "flex", height: "calc(100vh - 64px)", width: "100%" }}
     >
+      {/* Loading Screen for Scenario Builder - TOP LEVEL */}
+      {(scenariosLoading || isInitialLoading) && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(255, 255, 255, 0.98)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 999999,
+          fontSize: 18,
+          color: "#6b7280"
+        }}>
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 16
+          }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              border: "3px solid #e5e7eb",
+              borderTop: "3px solid #3b82f6",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite"
+            }} />
+            <div>Loading Scenario Builder...</div>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
+        </div>
+      )}
+
       <div style={builderStyles.canvasWrap as React.CSSProperties}>
         <div style={{ position: "absolute", inset: 0 }} ref={rf}>
           <ReactFlow

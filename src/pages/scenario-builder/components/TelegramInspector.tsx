@@ -5,6 +5,7 @@ import { createTelegramConnection, getTelegramConnections, findTelegramConnectio
 import type { AppKey, AppSpec, RFData } from "../types";
 import { builderStyles } from "../styles";
 import { getAppSpec } from "../utils";
+import InspectorSkeletonData from "./InspectorSkeletonData";
 
 type TelegramInspectorProps = {
   node: Node<RFData>;
@@ -60,6 +61,7 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
   // Test state
   const [hasTested, setHasTested] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
+  const [isLoadingTestData, setIsLoadingTestData] = useState<boolean>(false);
   const [testError, setTestError] = useState<string>("");
 
   // Function to fetch bot information from Telegram API
@@ -154,6 +156,7 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
   const sendTestMessage = async () => {
     try {
       setIsTesting(true);
+      setIsLoadingTestData(true);
       setTestError("");
 
       const botToken = (localValues?.botToken as string) || "";
@@ -181,6 +184,7 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
 
       if (data.ok) {
         setHasTested(true);
+        setIsLoadingTestData(false);
         if (onShowAlert) {
           onShowAlert("✅ Test message sent successfully! Check your Telegram chat.");
         }
@@ -190,6 +194,7 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
     } catch (error) {
       console.error("Failed to send test message:", error);
       setTestError(error instanceof Error ? error.message : "Failed to send test message");
+      setIsLoadingTestData(false);
       if (onShowAlert) {
         onShowAlert(`❌ Failed to send test message: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
@@ -915,7 +920,9 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
           </div>
 
           <div style={{ display: "flex", gap: "8px" }}>
-            {!hasTested ? (
+            {isLoadingTestData ? (
+              <InspectorSkeletonData type="telegram" rows={2} />
+            ) : !hasTested ? (
               <>
                 <button
                   style={{
@@ -981,6 +988,8 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
                     // Reset test state for another test
                     setHasTested(false);
                     setTestError("");
+                    setIsLoadingTestData(true);
+                    sendTestMessage();
                   }}
                 >
                   Test Again

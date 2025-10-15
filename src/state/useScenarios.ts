@@ -1,23 +1,40 @@
 // src/state/useScenarios.ts
-import { useMemo } from "react";
+import { useContext } from "react";
+import { ScenariosContext } from "./ScenariosContext.context";
 import {
   type Scenario,
   type ScenarioListParams,
   type ScenarioStatus,
 } from "../types/scenarios";
-import { getScenariosService } from "../services/scenarios";
 
 export function useScenarios() {
-  const svc = useMemo(() => getScenariosService(), []);
+  const context = useContext(ScenariosContext);
 
-  // Expose the raw service for now — we’ll add caching/loading later if needed.
+  if (!context) {
+    throw new Error("useScenarios must be used within a ScenariosProvider");
+  }
+
   return {
-    list: (params: ScenarioListParams) => svc.list(params),
-    get: (id: string) => svc.get(id),
-    create: (input: Partial<Scenario>) => svc.create(input),
-    update: (id: string, patch: Partial<Scenario>) => svc.update(id, patch),
-    remove: (id: string) => svc.remove(id),
-    setStatus: (id: string, status: ScenarioStatus) => svc.setStatus(id, status),
-    snapshot: (id: string, note?: string) => svc.snapshot?.(id, note),
+    scenarios: context.scenarios,
+    isLoading: context.isLoading,
+    refresh: context.refresh,
+    save: context.save,
+    remove: context.remove,
+    get: context.get,
+    preload: context.preload,
+    // Legacy methods that throw - these should be implemented in context if needed
+    list: (_params: ScenarioListParams) => context.refresh(),
+    create: (_input: Partial<Scenario>) => {
+      throw new Error("Not implemented - use ScenariosContext directly");
+    },
+    update: (_id: string, _patch: Partial<Scenario>) => {
+      throw new Error("Not implemented - use ScenariosContext directly");
+    },
+    setStatus: (_id: string, _status: ScenarioStatus) => {
+      throw new Error("Not implemented - use ScenariosContext directly");
+    },
+    snapshot: (_id: string, _note?: string) => {
+      throw new Error("Not implemented - use ScenariosContext directly");
+    },
   };
 }

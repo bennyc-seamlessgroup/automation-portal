@@ -3,6 +3,7 @@ import type { Node } from "reactflow";
 import type { AppKey, AppSpec, RFData } from "../types";
 import { builderStyles } from "../styles";
 import { getAppSpec } from "../utils";
+import InspectorSkeletonData from "./InspectorSkeletonData";
 
 type GmailInspectorProps = {
   node: Node<RFData>;
@@ -35,6 +36,7 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onSh
   // Test state
   const [hasTested, setHasTested] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
+  const [isLoadingTestData, setIsLoadingTestData] = useState<boolean>(false);
 
   // Header title override for Gmail
   const headerTitle = data.label || "Gmail – Watch emails";
@@ -81,16 +83,19 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onSh
   const handleTestGmail = async () => {
     try {
       setIsTesting(true);
+      setIsLoadingTestData(true);
 
-      // Simulate API call delay
+      // Simulate API call delay for loading test data
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       setHasTested(true);
+      setIsLoadingTestData(false);
     } catch (error) {
       console.error("Failed to test Gmail connection:", error);
       if (onShowAlert) {
         onShowAlert(`❌ Gmail connection test failed: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
+      setIsLoadingTestData(false);
     } finally {
       setIsTesting(false);
     }
@@ -99,6 +104,7 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onSh
   // Reset test state
   const handleTestAgain = async () => {
     setHasTested(false);
+    setIsLoadingTestData(true);
     await handleTestGmail();
   };
 
@@ -631,7 +637,9 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onSh
             </p>
           </div>
 
-          {!hasTested ? (
+          {isLoadingTestData ? (
+            <InspectorSkeletonData type="gmail" rows={3} />
+          ) : !hasTested ? (
             // Initial test screen - show test buttons
             <div style={{ display: "flex", gap: "8px" }}>
               <button
