@@ -3,7 +3,9 @@ import type { Scenario } from "../types/scenarios";
 
 export type ScenariosContextType = {
   scenarios: Scenario[];
+  isLoading: boolean;
   refresh: () => Promise<void>;
+  preload: () => Promise<void>;
   save: (s: Scenario) => Promise<void>;
   remove: (id: string) => Promise<void>;
   get: (id: string) => Promise<Scenario | undefined>;

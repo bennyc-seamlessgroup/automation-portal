@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, Suspense, lazy } from 'react'
+import React from 'react'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
 const Scenarios = lazy(() => import('./pages/Scenarios'))
@@ -17,7 +18,24 @@ const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 
 // 🔧 state context for scenarios (lightweight data layer)
-import { ScenariosProvider } from './state/ScenariosContext'
+import { ScenariosProvider, ScenariosContext } from './state/ScenariosContext'
+import type { ScenariosContextType } from './state/ScenariosContext.context'
+
+// Background preloader component
+const BackgroundPreloader: React.FC = () => {
+  const location = useLocation();
+  const scenariosContext = React.useContext(ScenariosContext) as ScenariosContextType | null;
+
+  useEffect(() => {
+    // Trigger background preloading when navigating from login to dashboard
+    if (location.pathname === '/dashboard' && scenariosContext?.preload) {
+      console.log('[App] Background preloading scenarios after login...');
+      scenariosContext.preload();
+    }
+  }, [location.pathname, scenariosContext]);
+
+  return null;
+};
 
 // debug overlay is mounted per-page (e.g., in Scenarios)
 
@@ -36,6 +54,7 @@ export default function App() {
 
   return (
     <ScenariosProvider>
+      <BackgroundPreloader />
       <div className="app-grid">
         {!isLoginPage && <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
         {!isLoginPage && <Topbar onHamburger={() => setSidebarOpen(s => !s)} />}

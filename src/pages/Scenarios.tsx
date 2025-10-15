@@ -27,12 +27,17 @@ export default function Scenarios() {
 
   // Data + nav
   const navigate = useNavigate();
-  const { scenarios, save, remove, refresh } = useScenarios();
+  const { scenarios, isLoading, save, remove, refresh } = useScenarios();
+
+  // Track if this is the initial load
+  const [hasLoadedInitially, setHasLoadedInitially] = useState(false);
 
   // Ensure scenarios are loaded when component mounts
   useEffect(() => {
     console.log('[Scenarios] Component mounted, calling refresh...');
-    refresh();
+    refresh().finally(() => {
+      setHasLoadedInitially(true);
+    });
   }, [refresh]);
 
   // Derived: filtered items
@@ -197,7 +202,15 @@ export default function Scenarios() {
       </div>
 
       {/* Body */}
-      {items.length === 0 ? (
+      {(!hasLoadedInitially || isLoading) ? (
+        <ListView
+          items={[]}
+          gotoEdit={gotoEdit}
+          onToggleStatus={onToggleStatus}
+          onDelete={onDelete}
+          isLoading={true}
+        />
+      ) : items.length === 0 ? (
         <EmptyHero
           onOpenScenarioBuilder={onCreate}
           onBrowseTemplates={onBrowseTemplates}
@@ -208,6 +221,7 @@ export default function Scenarios() {
           gotoEdit={gotoEdit}
           onToggleStatus={onToggleStatus}
           onDelete={onDelete}
+          isLoading={false}
         />
       )}
 

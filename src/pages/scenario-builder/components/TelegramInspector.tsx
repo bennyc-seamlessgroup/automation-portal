@@ -749,7 +749,10 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
                   gap: "8px",
                   marginBottom: "4px"
                 }}>
-                  <div style={builderStyles.formLabel}>Bot Token *</div>
+                  <div style={builderStyles.formLabel}>
+                    Bot Token
+                    <span style={{ color: "#dc2626" }}>*</span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {

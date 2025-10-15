@@ -85,13 +85,13 @@ export class TelegramSend {
           },
           {
             key: 'chatId',
-            label: 'Chat ID',
+            label: 'Chat ID *',
             type: 'select',
             options: ['Personal Chat', 'Group Chat', 'Channel']
           },
           {
             key: 'messageText',
-            label: 'Message Text',
+            label: 'Message Text *',
             placeholder: 'Message to send'
           }
         ]

@@ -12,7 +12,29 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const scenariosService = getScenariosService();
+
+  const preload = useCallback(async () => {
+    try {
+      console.log('[ScenariosContext] Background preloading scenarios...');
+
+      // TEMPORARY: Add 2s delay for previewing loading animations
+      // TODO: Remove this artificial delay in production
+      // Alternative approach: Consider implementing a loading state management system
+      // that shows skeletons based on actual network requests rather than artificial delays
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      setIsLoading(true);
+      const result = await scenariosService.list({});
+      setScenarios(result.items);
+    } catch (error) {
+      console.error('Failed to preload scenarios:', error);
+      setScenarios([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [scenariosService]);
 
   const refresh = useCallback(async () => {
     try {
@@ -26,11 +48,21 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       console.log('[ScenariosContext] Loading scenarios...');
+
+      // TEMPORARY: Add 2s delay for previewing loading animations
+      // TODO: Remove this artificial delay in production
+      // Alternative approach: Consider implementing a loading state management system
+      // that shows skeletons based on actual network requests rather than artificial delays
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      setIsLoading(true);
       const result = await scenariosService.list({});
       setScenarios(result.items);
     } catch (error) {
       console.error('Failed to load scenarios:', error);
       setScenarios([]);
+    } finally {
+      setIsLoading(false);
     }
   }, [scenariosService]);
 
@@ -72,8 +104,8 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [refresh]);
 
   const value = useMemo(
-    () => ({ scenarios, refresh, save, remove, get }),
-    [scenarios, refresh, save, remove, get]
+    () => ({ scenarios, isLoading, refresh, save, remove, get, preload }),
+    [scenarios, isLoading, refresh, save, remove, get, preload]
   );
   return (
     <ScenariosContext.Provider value={value}>
@@ -81,3 +113,5 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
     </ScenariosContext.Provider>
   );
 };
+
+export { ScenariosContext };

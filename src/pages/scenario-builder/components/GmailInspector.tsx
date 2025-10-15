@@ -131,7 +131,7 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onSh
     let displayLabel = field.label;
     let options = field.options ?? [];
     if (normalizedLabel === "email category") {
-      displayLabel = "Mail folder to watch";
+      displayLabel = "Mail folder to watch *";
       if (!options.map((o) => o.toLowerCase()).includes("all mail")) {
         options = ["All mail", ...options];
       }

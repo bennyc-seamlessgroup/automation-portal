@@ -2,18 +2,25 @@ import type { Scenario } from "../../../types/scenarios";
 import { AppsInline } from "./AppBadges";
 import { formatRelativeDate } from "../utils/format";
 import ActionsDropdown from "./ActionsDropdown";
+import SkeletonTable from "./SkeletonTable";
 
 export default function ListView({
   items,
   gotoEdit,
   onToggleStatus,
   onDelete,
+  isLoading = false,
 }: {
   items: Scenario[];
   gotoEdit: (id: string) => void;
   onToggleStatus: (s: Scenario, toRunning: boolean) => void;
   onDelete: (id: string) => void;
+  isLoading?: boolean;
 }) {
+  if (isLoading) {
+    return <SkeletonTable rows={5} />;
+  }
+
   return (
     <div className="card ws-card">
       <div className="table-responsive ws-table-wrap">
