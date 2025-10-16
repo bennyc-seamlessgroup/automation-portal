@@ -110,13 +110,6 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Hide initial loading if scenarios are loaded before timeout
-  useEffect(() => {
-    if (!scenariosLoading && isInitialLoading) {
-      console.log('[ScenarioBuilder] Scenarios loaded, hiding initial loading screen early');
-      setIsInitialLoading(false);
-    }
-  }, [scenariosLoading, isInitialLoading]);
   const [showExplain, setShowExplain] = useState(false);
   const [showIO, setShowIO] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
