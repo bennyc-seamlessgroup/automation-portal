@@ -38,10 +38,10 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const refresh = useCallback(async () => {
     try {
-      // Only load scenarios if we're on a scenarios-related page or dashboard
+      // Load scenarios if we're on a scenarios-related page or dashboard
       if (typeof window !== 'undefined') {
         const path = window.location.pathname;
-        if (path === '/login' || !path.includes('/scenarios') && !path.includes('/dashboard')) {
+        if (path === '/login' || (!path.includes('/scenarios') && !path.includes('/dashboard'))) {
           console.log('[ScenariosContext] Skipping scenarios load - not on scenarios/dashboard page');
           return;
         }

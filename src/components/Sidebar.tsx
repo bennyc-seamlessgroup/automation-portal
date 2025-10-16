@@ -1,4 +1,3 @@
-import { NavLink } from 'react-router-dom'
 import clsx from 'classnames'
 
 type Props = { open: boolean; onClose: () => void }
@@ -22,36 +21,55 @@ const SUPPORT = [
 ]
 
 export default function Sidebar({ open, onClose }: Props) {
+    const handleNavClick = (e: React.MouseEvent, to: string) => {
+        // Ensure navigation works
+        e.preventDefault();
+        // Force navigation programmatically
+        window.location.href = to;
+    };
+
     return (
         <aside className={clsx('sidebar', { show: open })} onMouseLeave={onClose}>
-            <a className="brand" href="#">
+            <a className="brand" href="#" onClick={(e) => e.preventDefault()}>
                 <i className="bi bi-diagram-3" />
                 <span>Seamless Automation</span>
             </a>
             <div className="nav-rail">
                 <div className="nav-section-title">Main</div>
                 {NAV.map(item => (
-                    <NavLink key={item.to} to={item.to}
-                        className={({ isActive }) => clsx('nav-link', { active: isActive })}>
+                    <a
+                        key={item.to}
+                        href={item.to}
+                        onClick={(e) => handleNavClick(e, item.to)}
+                        className={clsx('nav-link')}
+                    >
                         <i className={`bi ${item.icon}`} />
                         <span>{item.label}</span>
-                    </NavLink>
+                    </a>
                 ))}
                 <div className="nav-section-title">Organization</div>
                 {ORG.map(item => (
-                    <NavLink key={item.to} to={item.to}
-                        className={({ isActive }) => clsx('nav-link', { active: isActive })}>
+                    <a
+                        key={item.to}
+                        href={item.to}
+                        onClick={(e) => handleNavClick(e, item.to)}
+                        className={clsx('nav-link')}
+                    >
                         <i className={`bi ${item.icon}`} />
                         <span>{item.label}</span>
-                    </NavLink>
+                    </a>
                 ))}
                 <div className="nav-section-title">Support</div>
                 {SUPPORT.map(item => (
-                    <NavLink key={item.to} to={item.to}
-                        className={({ isActive }) => clsx('nav-link', { active: isActive })}>
+                    <a
+                        key={item.to}
+                        href={item.to}
+                        onClick={(e) => handleNavClick(e, item.to)}
+                        className={clsx('nav-link')}
+                    >
                         <i className={`bi ${item.icon}`} />
                         <span>{item.label}</span>
-                    </NavLink>
+                    </a>
                 ))}
             </div>
         </aside>

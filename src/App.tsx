@@ -15,7 +15,7 @@ const Settings = lazy(() => import('./pages/Settings'))
 const Help = lazy(() => import('./pages/Help'))
 const ScenarioBuilder = lazy(() => import('./pages/ScenarioBuilder'))
 const Login = lazy(() => import('./pages/Login'))
-const Dashboard = lazy(() => import('./pages/Dashboard'))
+import Dashboard from './pages/Dashboard'
 
 // 🔧 state context for scenarios (lightweight data layer)
 import { ScenariosProvider, ScenariosContext } from './state/ScenariosContext'

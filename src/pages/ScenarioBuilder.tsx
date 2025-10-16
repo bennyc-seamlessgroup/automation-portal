@@ -103,12 +103,20 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
   useEffect(() => {
     console.log('[ScenarioBuilder] Component mounted, showing loading screen');
     const timer = setTimeout(() => {
-      console.log('[ScenarioBuilder] Hiding loading screen after 3 seconds');
+      console.log('[ScenarioBuilder] Hiding loading screen after 1 second');
       setIsInitialLoading(false);
-    }, 3000);
+    }, 1000); // Reduced from 3 seconds to 1 second for better UX
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Hide initial loading if scenarios are loaded before timeout
+  useEffect(() => {
+    if (!scenariosLoading && isInitialLoading) {
+      console.log('[ScenarioBuilder] Scenarios loaded, hiding initial loading screen early');
+      setIsInitialLoading(false);
+    }
+  }, [scenariosLoading, isInitialLoading]);
   const [showExplain, setShowExplain] = useState(false);
   const [showIO, setShowIO] = useState(false);
   const [showSettings, setShowSettings] = useState(false);

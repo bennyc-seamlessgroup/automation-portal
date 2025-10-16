@@ -9,7 +9,8 @@ export const ScenarioBuilderLoading: React.FC<ScenarioBuilderLoadingProps> = ({
   scenariosLoading,
   isInitialLoading
 }) => {
-  if (!scenariosLoading && !isInitialLoading) {
+  // Only show loading if both conditions are true (more conservative)
+  if (!(scenariosLoading && isInitialLoading)) {
     return null;
   }
 
