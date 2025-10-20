@@ -38,7 +38,7 @@ export default function Scenarios() {
     refresh().finally(() => {
       setHasLoadedInitially(true);
     });
-  }, [refresh]);
+  }, []); // Remove refresh dependency since it's now stable
 
   // Derived: filtered items
   const items = useMemo(() => {

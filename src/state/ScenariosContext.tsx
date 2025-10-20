@@ -13,7 +13,6 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const scenariosService = getScenariosService();
 
   const preload = useCallback(async () => {
     try {
@@ -26,6 +25,7 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       setIsLoading(true);
+      const scenariosService = getScenariosService();
       const result = await scenariosService.list({});
       setScenarios(result.items);
     } catch (error) {
@@ -34,19 +34,10 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [scenariosService]);
+  }, []); // Remove scenariosService dependency since it's a singleton
 
   const refresh = useCallback(async () => {
     try {
-      // Load scenarios if we're on a scenarios-related page or dashboard
-      if (typeof window !== 'undefined') {
-        const path = window.location.pathname;
-        if (path === '/login' || (!path.includes('/scenarios') && !path.includes('/dashboard'))) {
-          console.log('[ScenariosContext] Skipping scenarios load - not on scenarios/dashboard page');
-          return;
-        }
-      }
-
       console.log('[ScenariosContext] Loading scenarios...');
 
       // TEMPORARY: Add 2s delay for previewing loading animations
@@ -56,6 +47,7 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       setIsLoading(true);
+      const scenariosService = getScenariosService();
       const result = await scenariosService.list({});
       setScenarios(result.items);
     } catch (error) {
@@ -64,44 +56,49 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [scenariosService]);
+  }, []); // Remove scenariosService dependency since it's a singleton
 
   const save = useCallback(
     async (s: Scenario) => {
       try {
+        const scenariosService = getScenariosService();
         await scenariosService.save(s);
         await refresh();
       } catch (error) {
         console.error('Failed to save scenario:', error);
       }
     },
-    [scenariosService, refresh]
+    [refresh]
   );
 
   const remove = useCallback(
     async (id: string) => {
       try {
+        const scenariosService = getScenariosService();
         await scenariosService.remove(id);
         await refresh();
       } catch (error) {
         console.error('Failed to remove scenario:', error);
       }
     },
-    [scenariosService, refresh]
+    [refresh]
   );
 
   const get = useCallback(async (id: string) => {
     try {
+      const scenariosService = getScenariosService();
       return await scenariosService.get(id);
     } catch (error) {
       console.error('Failed to get scenario:', error);
       return undefined;
     }
-  }, [scenariosService]);
+  }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    // Data will be loaded when explicitly requested (e.g., when Scenarios component mounts)
+    // No auto-loading on context mount to prevent duplicate API calls
+    console.log('[ScenariosContext] Context initialized, waiting for explicit refresh');
+  }, []);
 
   const value = useMemo(
     () => ({ scenarios, isLoading, refresh, save, remove, get, preload }),

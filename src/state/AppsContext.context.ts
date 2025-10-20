@@ -7,7 +7,6 @@ export type AppsContextType = {
   isLoading: boolean;
   refresh: (params?: { category?: string; search?: string }) => Promise<void>;
   preload: () => Promise<void>;
-  lastRefresh?: number;
 };
 
 export const AppsContext = React.createContext<AppsContextType | null>(null);

@@ -18,7 +18,10 @@ export function FunctionPicker({ open, onPick, onClose, initialCategory = "apps"
   const [q, setQ] = useState("");
   const { apps, isLoading, refresh } = useContext(AppsContext) || { apps: [], isLoading: false, refresh: async () => {} };
 
-  console.log('[FunctionPicker] Context data:', { appsCount: apps.length, isLoading, open, sampleApps: apps.slice(0, 2) });
+  // Debug logging - only log when data actually changes
+  useEffect(() => {
+    console.log('[FunctionPicker] Context data changed:', { appsCount: apps.length, isLoading, open, sampleApps: apps.slice(0, 2) });
+  }, [apps.length, isLoading, open]);
 
   useEffect(() => {
     if (open) {
@@ -28,7 +31,7 @@ export function FunctionPicker({ open, onPick, onClose, initialCategory = "apps"
       // Refresh apps data when picker opens - this will trigger loading state
       refresh();
     }
-  }, [open, initialCategory, refresh]);
+  }, [open, initialCategory]); // Remove refresh dependency since it's now stable
 
   const items = useMemo(
     () =>

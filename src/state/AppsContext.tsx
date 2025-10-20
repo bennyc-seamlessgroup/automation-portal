@@ -53,8 +53,6 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [apps, setApps] = useState<AppSpec[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<number>(0);
-  const appsService = getAppsService();
 
   const preload = useCallback(async () => {
     try {
@@ -74,6 +72,7 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
         // If no cached data, load from service and cache it
         console.log('[AppsContext] No cached data, loading from service');
         try {
+          const appsService = getAppsService();
           const result = await appsService.list({});
           console.log('[AppsContext] Preload result:', result);
           setApps(result.items);
@@ -90,7 +89,7 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [appsService]);
+  }, []); // Remove appsService dependency since it's a singleton
 
   const refresh = useCallback(async (params?: { category?: string; search?: string }) => {
     try {
@@ -99,18 +98,18 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsLoading(true);
 
       // Load fresh data from service
+      const appsService = getAppsService();
       const result = await appsService.list(params || {});
       console.log('[AppsContext] Refresh result:', result);
       setApps(result.items);
       saveAll(result.items); // Update cache
-      setLastRefresh(Date.now());
     } catch (error) {
       console.error('Failed to load apps:', error);
       setApps([]);
     } finally {
       setIsLoading(false);
     }
-  }, [appsService]);
+  }, []); // Remove appsService dependency since it's a singleton
 
   // Listen for storage events to sync across tabs
   useEffect(() => {
@@ -139,8 +138,8 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const value = useMemo(
-    () => ({ apps, isLoading, refresh, preload, lastRefresh }),
-    [apps, isLoading, refresh, preload, lastRefresh]
+    () => ({ apps, isLoading, refresh, preload }),
+    [apps, isLoading, refresh, preload]
   );
   return (
     <AppsContext.Provider value={value}>

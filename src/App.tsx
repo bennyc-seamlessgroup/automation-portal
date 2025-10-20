@@ -40,7 +40,8 @@ const BackgroundPreloader: React.FC = () => {
         appsContext.preload();
       }
     }
-  }, [location.pathname, scenariosContext, appsContext]);
+  }, [location.pathname]); // Remove context dependencies to prevent infinite loop
+
 
   return null;
 };
