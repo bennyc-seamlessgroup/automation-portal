@@ -1,4 +1,4 @@
-﻿import type { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { builderStyles } from "../styles";
 
@@ -27,7 +27,16 @@ export function Drawer({ open, children, onClose, title = "Settings" }: DrawerPr
           Close
         </button>
       </div>
-      <div style={{ padding: 16, overflow: "auto", flex: 1 }}>{children}</div>
+      <div style={{
+        padding: 16,
+        overflow: "auto",
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        height: "100%"
+      }}>
+        {children}
+      </div>
     </div>
   );
 }

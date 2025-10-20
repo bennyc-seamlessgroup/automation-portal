@@ -132,10 +132,10 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
-    // Don't auto-refresh on mount to prevent race conditions
-    // Data will be loaded when explicitly requested (e.g., when FunctionPicker opens)
-    console.log('[AppsContext] Context initialized, waiting for explicit refresh');
-  }, []);
+    // Load app data immediately when context is created for session caching
+    console.log('[AppsContext] Context initialized, loading app data for session...');
+    preload();
+  }, [preload]);
 
   const value = useMemo(
     () => ({ apps, isLoading, refresh, preload }),

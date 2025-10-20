@@ -82,8 +82,9 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
   const [originalNodeData, setOriginalNodeData] = useState<RFData | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // --- Run/test/schedule state ---
-  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  // Track if initial scenario data has been loaded
+  const [isInitialDataLoaded, setIsInitialDataLoaded] = useState(false);
+  const [scheduleEnabled, setScheduleEnabled] = useState<boolean>(false);
   const [interval, setIntervalStr] = useState<"15m" | "1h" | "1d">("15m");
   const [savingFlash, setSavingFlash] = useState<null | string>(null);
   const [autosaveEnabled, setAutosaveEnabled] = useState<boolean>(() => {
@@ -240,6 +241,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
               });
               // Hide loading screen once scenario is loaded
               setIsInitialLoading(false);
+              // Mark that initial data has been loaded
+              setIsInitialDataLoaded(true);
               return;
             }
           }
@@ -271,6 +274,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
       }
       // Hide loading screen for new scenarios
       setIsInitialLoading(false);
+      // Mark that initial data has been loaded
+      setIsInitialDataLoaded(true);
     };
 
     loadScenario();
@@ -278,7 +283,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
 
   // Unified save function for autosave
   const unifiedSave = useCallback(
-    (data: {
+    async (data: {
       nodes: Node<RFData>[];
       edges: Edge<RFData>[];
       name: string;
@@ -312,63 +317,81 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
         updatedAt: new Date().toISOString(),
         graph: { nodes, edges, name, notes },
       };
-      save(record);
 
-      // Log the save action
-      addLogEntry("success", `Auto-saved: ${name}`, {
-        nodeCount: nodes.length,
-        edgeCount: edges.length,
-        scenarioId: id,
-      });
+      try {
+        // Show "Saving..." state for autosave
+        setSavingFlash("Saving...");
 
-      setSavingFlash("Auto-saved");
-      setTimeout(() => setSavingFlash(null), 1200);
+        // Perform the save operation
+        await save(record);
 
-      // Debug payload for autosave - Enhanced with full state snapshot and diff info for backend team
-      emitDebugPayload("scenarioBuilder.save.autosave", {
-        id: id,
-        name: name,
-        nodes_count: nodes.length,
-        edges_count: edges.length,
-        modules_count: modules,
-        // Full state snapshot for backend persistence
-        full_state: {
+        // Log the save action
+        addLogEntry("success", `Auto-saved: ${name}`, {
+          nodeCount: nodes.length,
+          edgeCount: edges.length,
+          scenarioId: id,
+        });
+
+        // Show "Auto-saved" state only after successful save
+        setSavingFlash("Auto-saved");
+        setTimeout(() => setSavingFlash(null), 1200);
+
+        // Debug payload for autosave - Enhanced with full state snapshot and diff info for backend team
+        emitDebugPayload("scenarioBuilder.save.autosave", {
           id: id,
           name: name,
-          notes,
-          nodes: nodes.map((n) => ({
-            id: n.id,
-            type: n.type,
-            position: n.position,
-            data: n.data,
-            selected: n.selected,
-            dragging: n.dragging,
-          })),
-          edges: edges.map((e) => ({
-            id: e.id,
-            source: e.source,
-            target: e.target,
-            type: e.type,
-            sourceHandle: e.sourceHandle,
-            targetHandle: e.targetHandle,
-            markerEnd: e.markerEnd,
-            animated: e.animated,
-            style: e.style,
-          })),
-          schedule_enabled: scheduleEnabled,
-          interval,
-        },
-        // Minimal diff info for backend team
-        diff: {
-          action: "autosave",
-          timestamp: new Date().toISOString(),
           nodes_count: nodes.length,
           edges_count: edges.length,
-          changes: "auto-saved current state",
-        },
-      });
+          modules_count: modules,
+          // Full state snapshot for backend persistence
+          full_state: {
+            id: id,
+            name: name,
+            notes,
+            nodes: nodes.map((n) => ({
+              id: n.id,
+              type: n.type,
+              position: n.position,
+              data: n.data,
+              selected: n.selected,
+              dragging: n.dragging,
+            })),
+            edges: edges.map((e) => ({
+              id: e.id,
+              source: e.source,
+              target: e.target,
+              type: e.type,
+              sourceHandle: e.sourceHandle,
+              targetHandle: e.targetHandle,
+              markerEnd: e.markerEnd,
+              animated: e.animated,
+              style: e.style,
+            })),
+            schedule_enabled: scheduleEnabled,
+            interval,
+          },
+          // Minimal diff info for backend team
+          diff: {
+            action: "autosave",
+            timestamp: new Date().toISOString(),
+            nodes_count: nodes.length,
+            edges_count: edges.length,
+            changes: "auto-saved current state",
+          },
+        });
+      } catch (error) {
+        console.error('Failed to auto-save scenario:', error);
+        addLogEntry("error", `Failed to auto-save scenario: ${name}`, {
+          error: error instanceof Error ? error.message : String(error),
+          scenario_id: id,
+        });
+
+        // Show error state for autosave
+        setSavingFlash("Auto-save failed");
+        setTimeout(() => setSavingFlash(null), 2000);
+      }
     },
-    [savedId, scenarioId, save, scheduleEnabled, interval, addLogEntry]
+    [savedId, scenarioId, save, scheduleEnabled, interval, addLogEntry, setSavingFlash]
   );
 
   // Setup autosave for all data changes
@@ -385,7 +408,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
   // Setup autosave for all data changes (only when enabled and not a new scenario)
   const { isSaving: isAutosaving, lastSaved: lastAutosaveTime } = useAutosave(
     scenarioData,
-    (autosaveEnabled && (scenarioId !== "new" && savedId)) ? unifiedSave : () => {}, // No-op function when autosave is disabled or for new scenarios
+    (autosaveEnabled && isInitialDataLoaded && (scenarioId !== "new" && savedId)) ? unifiedSave : () => {}, // No-op function when autosave is disabled or for new scenarios
     2000 // 2 second debounce
   );
 
@@ -590,7 +613,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
   ]);
 
   const handleSave = useCallback(
-    (override?: { nodes: Node<RFData>[]; edges: Edge<RFData>[] }) => {
+    async (override?: { nodes: Node<RFData>[]; edges: Edge<RFData>[] }) => {
       // Persist to shared scenarios store
       const id =
         savedId ??
@@ -621,61 +644,79 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
           notes,
         },
       };
-      save(record);
 
-      // Log the save action
-      addLogEntry("success", `Scenario saved: ${scenarioName}`, {
-        nodes_count: currentNodes.length,
-        edges_count: currentEdges.length,
-        scenario_id: id,
-      });
+      try {
+        // Show "Saving..." state
+        setSavingFlash("Saving...");
 
-      setSavingFlash("Saved");
-      setTimeout(() => setSavingFlash(null), 1200);
+        // Perform the save operation
+        await save(record);
 
-      // Debug payload for manual save - Enhanced with full state snapshot and diff info for backend team
-      emitDebugPayload("scenarioBuilder.save.manual", {
-        id: id,
-        name: scenarioName,
-        nodes_count: currentNodes.length,
-        edges_count: currentEdges.length,
-        modules_count: modules,
-        // Full state snapshot for backend persistence
-        full_state: {
-          id: id,
-          name: scenarioName,
-          notes,
-          nodes: currentNodes.map((n: Node<RFData>) => ({
-            id: n.id,
-            type: n.type,
-            position: n.position,
-            data: n.data,
-            selected: n.selected,
-            dragging: n.dragging,
-          })),
-          edges: currentEdges.map((e: Edge<RFData>) => ({
-            id: e.id,
-            source: e.source,
-            target: e.target,
-            type: e.type,
-            sourceHandle: e.sourceHandle,
-            targetHandle: e.targetHandle,
-            markerEnd: e.markerEnd,
-            animated: e.animated,
-            style: e.style,
-          })),
-          schedule_enabled: scheduleEnabled,
-          interval,
-        },
-        // Minimal diff info for backend team
-        diff: {
-          action: "manual_save",
-          timestamp: new Date().toISOString(),
+        // Log the save action
+        addLogEntry("success", `Scenario saved: ${scenarioName}`, {
           nodes_count: currentNodes.length,
           edges_count: currentEdges.length,
-          changes: "manual save performed",
-        },
-      });
+          scenario_id: id,
+        });
+
+        // Show "Saved" state only after successful save
+        setSavingFlash("Saved");
+        setTimeout(() => setSavingFlash(null), 1200);
+
+        // Debug payload for manual save - Enhanced with full state snapshot and diff info for backend team
+        emitDebugPayload("scenarioBuilder.save.manual", {
+          id: id,
+          name: scenarioName,
+          nodes_count: currentNodes.length,
+          edges_count: currentEdges.length,
+          modules_count: modules,
+          // Full state snapshot for backend persistence
+          full_state: {
+            id: id,
+            name: scenarioName,
+            notes,
+            nodes: currentNodes.map((n: Node<RFData>) => ({
+              id: n.id,
+              type: n.type,
+              position: n.position,
+              data: n.data,
+              selected: n.selected,
+              dragging: n.dragging,
+            })),
+            edges: currentEdges.map((e: Edge<RFData>) => ({
+              id: e.id,
+              source: e.source,
+              target: e.target,
+              type: e.type,
+              sourceHandle: e.sourceHandle,
+              targetHandle: e.targetHandle,
+              markerEnd: e.markerEnd,
+              animated: e.animated,
+              style: e.style,
+            })),
+            schedule_enabled: scheduleEnabled,
+            interval,
+          },
+          // Minimal diff info for backend team
+          diff: {
+            action: "manual_save",
+            timestamp: new Date().toISOString(),
+            nodes_count: currentNodes.length,
+            edges_count: currentEdges.length,
+            changes: "manual save performed",
+          },
+        });
+      } catch (error) {
+        console.error('Failed to save scenario:', error);
+        addLogEntry("error", `Failed to save scenario: ${scenarioName}`, {
+          error: error instanceof Error ? error.message : String(error),
+          scenario_id: id,
+        });
+
+        // Show error state
+        setSavingFlash("Save failed");
+        setTimeout(() => setSavingFlash(null), 2000);
+      }
     },
     [
       addLogEntry,

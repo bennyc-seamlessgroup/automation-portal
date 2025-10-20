@@ -284,18 +284,18 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
   }, [data.values]);
 
   const writeValue = (k: string, v: unknown) => {
-    setLocalValues(prev => ({ ...prev, [k]: v }));
-  };
+    const newValues = { ...localValues, [k]: v };
+    setLocalValues(newValues);
 
-  // Apply local values to node data when saving
-  const saveSettings = () => {
-    // Apply all local values to node data and trigger save
-    setData({ values: localValues });
-
-    // Close the window
-    if (onClose) {
-      onClose();
-    }
+    // Immediately save to node data
+    const updatedNode = {
+      ...node,
+      data: {
+        ...node.data,
+        values: newValues
+      }
+    };
+    onChangeNode(updatedNode);
   };
 
   // Generic field renderer with Telegram-specific tweaks
@@ -452,7 +452,11 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
   };
 
   return (
-    <>
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      height: "100%"
+    }}>
       {/* Header */}
       <div
         style={{
@@ -643,6 +647,44 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Compact step indicator - right after the main roadmap */}
+      <div style={{
+        margin: "24px 0",
+        padding: "16px 20px",
+        background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+        border: "1px solid #bae6fd",
+        borderRadius: "12px",
+        textAlign: "center",
+        boxShadow: "0 2px 8px rgba(59, 130, 246, 0.08)"
+      }}>
+        <div style={{
+          fontSize: "14px",
+          color: "#64748b",
+          fontWeight: "500"
+        }}>
+          <span style={{
+            color: "#2563eb",
+            fontWeight: "700",
+            fontSize: "16px",
+            marginRight: "8px"
+          }}>
+            {currentStep}
+          </span>
+          <span>of {steps.length}</span>
+          <span style={{
+            margin: "0 12px",
+            color: "#cbd5e1",
+            fontWeight: "300"
+          }}>•</span>
+          <span style={{
+            color: "#1e293b",
+            fontWeight: "600"
+          }}>
+            {steps.find(s => s.id === currentStep)?.title || "Unknown"}
+          </span>
+        </div>
       </div>
 
       {/* Back buttons for steps 2 and 3 */}
@@ -1008,7 +1050,7 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
                     flex: 1,
                   }}
                   onClick={() => {
-                    saveSettings();
+                    if (onClose) onClose();
                   }}
                 >
                   Done
@@ -1034,6 +1076,6 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }

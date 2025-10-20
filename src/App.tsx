@@ -19,22 +19,16 @@ import Dashboard from './pages/Dashboard'
 
 // 🔧 state context for scenarios (lightweight data layer)
 import { ScenariosProvider } from './state/ScenariosContext'
-import { AppsProvider, AppsContext } from './state/AppsContext'
-import type { AppsContextType } from './state/AppsContext.context'
+import { AppsProvider } from './state/AppsContext'
 
 // Background preloader component
 const BackgroundPreloader: React.FC = () => {
   const location = useLocation();
-  const appsContext = React.useContext(AppsContext) as AppsContextType | null;
 
   useEffect(() => {
-    // Only preload apps when navigating to dashboard (scenarios will load when scenarios page is visited)
-    if (location.pathname === '/dashboard') {
-      console.log('[App] Background preloading apps after login...');
-      if (appsContext?.preload) {
-        appsContext.preload();
-      }
-    }
+    // Apps data is now loaded automatically when AppsContext is created
+    // No need to preload here anymore
+    console.log('[App] Apps data loaded automatically by AppsContext');
   }, [location.pathname]);
 
   return null;
