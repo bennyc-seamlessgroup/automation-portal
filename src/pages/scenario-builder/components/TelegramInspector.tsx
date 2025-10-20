@@ -649,44 +649,6 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
         ))}
       </div>
 
-      {/* Compact step indicator - right after the main roadmap */}
-      <div style={{
-        margin: "24px 0",
-        padding: "16px 20px",
-        background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
-        border: "1px solid #bae6fd",
-        borderRadius: "12px",
-        textAlign: "center",
-        boxShadow: "0 2px 8px rgba(59, 130, 246, 0.08)"
-      }}>
-        <div style={{
-          fontSize: "14px",
-          color: "#64748b",
-          fontWeight: "500"
-        }}>
-          <span style={{
-            color: "#2563eb",
-            fontWeight: "700",
-            fontSize: "16px",
-            marginRight: "8px"
-          }}>
-            {currentStep}
-          </span>
-          <span>of {steps.length}</span>
-          <span style={{
-            margin: "0 12px",
-            color: "#cbd5e1",
-            fontWeight: "300"
-          }}>•</span>
-          <span style={{
-            color: "#1e293b",
-            fontWeight: "600"
-          }}>
-            {steps.find(s => s.id === currentStep)?.title || "Unknown"}
-          </span>
-        </div>
-      </div>
-
       {/* Back buttons for steps 2 and 3 */}
       {currentStep === 2 && (
         <div style={{ marginBottom: 16 }}>
@@ -736,6 +698,14 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
       {/* CONNECT TAB */}
       {activeTab === "connect" && (
         <div>
+          {/* Step title for connect tab */}
+          <div
+            className="d-flex align-items-center gap-2"
+            style={{ marginBottom: 16, color: "#6b7280", fontSize: 12 }}
+          >
+            <i className="bi bi-robot" /> STEP {currentStep} - Connect your Telegram bot
+          </div>
+
           {/* Existing connections dropdown */}
           {existingConnections.length > 0 && !showNewTokenInput && (
             <>
@@ -860,13 +830,6 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
 
           {/* Connect button */}
           <div style={{ marginTop: 12 }}>
-            <div
-              className="d-flex align-items-center gap-2"
-              style={{ marginBottom: 6, color: "#6b7280", fontSize: 12 }}
-            >
-              <i className="bi bi-robot" /> Connect your Telegram bot
-            </div>
-
             <button
               style={{
                 ...builderStyles.input,
@@ -905,7 +868,7 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
           {isApp && spec ? (
             <>
               <div style={{ ...builderStyles.formLabel, fontWeight: 600, color: "#374151" }}>
-                {headerTitle} Configuration
+                STEP {currentStep} - {headerTitle} Configuration
               </div>
 
               {/* Render spec fields with Telegram-specific tweaks */}
@@ -946,7 +909,7 @@ export function TelegramInspector({ node, onChangeNode, onDeleteNode, onClose, o
       {activeTab === "test" && (
         <div style={{ marginTop: 4 }}>
           <div style={{ ...builderStyles.formLabel, fontWeight: 600, color: "#374151", marginBottom: 12 }}>
-            Send Message to Telegram
+            STEP {currentStep} - Send Message to Telegram
           </div>
 
           <div style={{

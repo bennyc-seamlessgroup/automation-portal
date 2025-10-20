@@ -585,7 +585,7 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onSh
               className="d-flex align-items-center gap-2"
               style={{ marginBottom: 6, color: "#6b7280", fontSize: 12 }}
             >
-              <i className="bi bi-plug" /> Connect your Gmail account
+              <i className="bi bi-plug" /> STEP {currentStep} - Connect your Gmail account
             </div>
             <button
               style={{
@@ -612,12 +612,12 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onSh
       {/* CONFIGURE TAB */}
       {activeTab === "configure" && (
         <div style={{ marginTop: 4 }}>
+          <div style={{ ...builderStyles.formLabel, fontWeight: 600, color: "#374151" }}>
+            STEP {currentStep} - {headerTitle} Configuration
+          </div>
+
           {isApp && spec ? (
             <>
-              <div style={{ ...builderStyles.formLabel, fontWeight: 600, color: "#374151" }}>
-                {headerTitle} Configuration
-              </div>
-
               {/* Render spec fields with Gmail-specific tweaks */}
               {spec.fields
                 .filter((f) => f.key.toLowerCase() !== "label")
@@ -638,7 +638,7 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onSh
       {activeTab === "test" && (
         <div style={{ marginTop: 4 }}>
           <div style={{ ...builderStyles.formLabel, fontWeight: 600, color: "#374151", marginBottom: 12 }}>
-            Test Gmail Connection
+            STEP {currentStep} - Test Gmail Connection
           </div>
 
           <div style={{
@@ -811,30 +811,6 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onSh
           )}
         </div>
       )}
-
-      {/* Simple step indicator - at the bottom */}
-      <div style={{
-        marginTop: "16px",
-        padding: "8px 12px",
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
-        borderRadius: "6px",
-        textAlign: "center"
-      }}>
-        <div style={{
-          fontSize: "12px",
-          color: "#64748b",
-          fontWeight: "500"
-        }}>
-          <span style={{ color: "#2563eb", fontWeight: "600" }}>
-            Step {currentStep} of {steps.length}
-          </span>
-          <span style={{ margin: "0 6px", color: "#cbd5e1" }}>•</span>
-          <span style={{ color: "#475569" }}>
-            {steps.find(s => s.id === currentStep)?.title || "Unknown"}
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
