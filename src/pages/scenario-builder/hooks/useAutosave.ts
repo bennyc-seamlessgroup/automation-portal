@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useAutosave<T extends Record<string, any>>(
   data: T,
@@ -9,6 +9,7 @@ export function useAutosave<T extends Record<string, any>>(
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousDataRef = useRef<string>("");
+  const isInitialLoadRef = useRef(true);
 
   const scheduleSave = useCallback(() => {
     if (timeoutRef.current) {
@@ -26,6 +27,13 @@ export function useAutosave<T extends Record<string, any>>(
 
   const dataString = JSON.stringify(data);
   useEffect(() => {
+    // Don't trigger autosave on the very first data change (initial scenario load)
+    if (isInitialLoadRef.current && previousDataRef.current === "") {
+      previousDataRef.current = dataString;
+      isInitialLoadRef.current = false;
+      return;
+    }
+
     if (dataString !== previousDataRef.current) {
       previousDataRef.current = dataString;
       scheduleSave();

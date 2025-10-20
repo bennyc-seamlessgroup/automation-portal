@@ -5,7 +5,13 @@ import {
   } from "./_store.local";
   import type { ScenarioListParams, ScenarioListResult } from "./_store.local";
 
-  export function listScenariosLocal(params?: ScenarioListParams): ScenarioListResult {
+// Simulate API delay for list operation (15 seconds)
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  export async function listScenariosLocal(params?: ScenarioListParams): Promise<ScenarioListResult> {
+    // Simulate 15 second API delay
+    await sleep(15000);
+
     const { search = "", status = "all", page = 1, pageSize = 10 } = params || {};
     const qx = search.trim().toLowerCase();
 

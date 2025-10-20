@@ -21,8 +21,8 @@ export async function listApps(params: AppListParams = {}): Promise<AppListResul
   console.log('[AppsLocal] APP_CATALOG length:', APP_CATALOG.length);
   console.log('[AppsLocal] APP_CATALOG sample:', APP_CATALOG.slice(0, 3));
 
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 100));
+  // Simulate API delay for list operation (15 seconds)
+  await new Promise(resolve => setTimeout(resolve, 15000));
 
   // Filter by category if provided
   if (params.category) {
@@ -64,12 +64,16 @@ export async function listApps(params: AppListParams = {}): Promise<AppListResul
 }
 
 export async function getApp(id: string): Promise<AppSpec | undefined> {
-  await new Promise(resolve => setTimeout(resolve, 50));
+  // Simulate API delay for get operation (6 seconds)
+  await new Promise(resolve => setTimeout(resolve, 6000));
   return APP_CATALOG.find(app => app.key === id);
 }
 
 export async function refreshAppsFromAPI(): Promise<AppSpec[]> {
   console.log('[AppsLocal] Refreshing apps from APP_CATALOG');
+
+  // Simulate API delay for refresh operation (6 seconds)
+  await new Promise(resolve => setTimeout(resolve, 6000));
 
   // Load fresh data from APP_CATALOG
   const freshItems = [...APP_CATALOG];

@@ -99,17 +99,6 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
   const [notes, setNotes] = useState<string>("");
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  // Show loading screen for 3 seconds on initial mount to ensure visibility
-  useEffect(() => {
-    console.log('[ScenarioBuilder] Component mounted, showing loading screen');
-    const timer = setTimeout(() => {
-      console.log('[ScenarioBuilder] Hiding loading screen after 1 second');
-      setIsInitialLoading(false);
-    }, 1000); // Reduced from 3 seconds to 1 second for better UX
-
-    return () => clearTimeout(timer);
-  }, []);
-
   const [showExplain, setShowExplain] = useState(false);
   const [showIO, setShowIO] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -249,6 +238,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                 nodeCount: n.length,
                 edgeCount: e.length,
               });
+              // Hide loading screen once scenario is loaded
+              setIsInitialLoading(false);
               return;
             }
           }
@@ -278,6 +269,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
         setNotes("");
         setSavedId(null);
       }
+      // Hide loading screen for new scenarios
+      setIsInitialLoading(false);
     };
 
     loadScenario();

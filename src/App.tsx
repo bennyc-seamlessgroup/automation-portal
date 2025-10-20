@@ -18,30 +18,24 @@ const Login = lazy(() => import('./pages/Login'))
 import Dashboard from './pages/Dashboard'
 
 // 🔧 state context for scenarios (lightweight data layer)
-import { ScenariosProvider, ScenariosContext } from './state/ScenariosContext'
+import { ScenariosProvider } from './state/ScenariosContext'
 import { AppsProvider, AppsContext } from './state/AppsContext'
-import type { ScenariosContextType } from './state/ScenariosContext.context'
 import type { AppsContextType } from './state/AppsContext.context'
 
 // Background preloader component
 const BackgroundPreloader: React.FC = () => {
   const location = useLocation();
-  const scenariosContext = React.useContext(ScenariosContext) as ScenariosContextType | null;
   const appsContext = React.useContext(AppsContext) as AppsContextType | null;
 
   useEffect(() => {
-    // Trigger background preloading when navigating from login to dashboard
+    // Only preload apps when navigating to dashboard (scenarios will load when scenarios page is visited)
     if (location.pathname === '/dashboard') {
-      console.log('[App] Background preloading scenarios and apps after login...');
-      if (scenariosContext?.preload) {
-        scenariosContext.preload();
-      }
+      console.log('[App] Background preloading apps after login...');
       if (appsContext?.preload) {
         appsContext.preload();
       }
     }
-  }, [location.pathname]); // Remove context dependencies to prevent infinite loop
-
+  }, [location.pathname]);
 
   return null;
 };

@@ -18,12 +18,6 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       console.log('[ScenariosContext] Background preloading scenarios...');
 
-      // TEMPORARY: Add 2s delay for previewing loading animations
-      // TODO: Remove this artificial delay in production
-      // Alternative approach: Consider implementing a loading state management system
-      // that shows skeletons based on actual network requests rather than artificial delays
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
       setIsLoading(true);
       const scenariosService = getScenariosService();
       const result = await scenariosService.list({});
@@ -39,12 +33,6 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
   const refresh = useCallback(async () => {
     try {
       console.log('[ScenariosContext] Loading scenarios...');
-
-      // TEMPORARY: Add 2s delay for previewing loading animations
-      // TODO: Remove this artificial delay in production
-      // Alternative approach: Consider implementing a loading state management system
-      // that shows skeletons based on actual network requests rather than artificial delays
-      await new Promise(resolve => setTimeout(resolve, 2000));
 
       setIsLoading(true);
       const scenariosService = getScenariosService();
@@ -63,12 +51,12 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const scenariosService = getScenariosService();
         await scenariosService.save(s);
-        await refresh();
+        // Note: Removed automatic refresh() call - components should handle refreshing if needed
       } catch (error) {
         console.error('Failed to save scenario:', error);
       }
     },
-    [refresh]
+    []
   );
 
   const remove = useCallback(
@@ -76,12 +64,12 @@ export const ScenariosProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const scenariosService = getScenariosService();
         await scenariosService.remove(id);
-        await refresh();
+        // Note: Removed automatic refresh() call - components should handle refreshing if needed
       } catch (error) {
         console.error('Failed to remove scenario:', error);
       }
     },
-    [refresh]
+    []
   );
 
   const get = useCallback(async (id: string) => {

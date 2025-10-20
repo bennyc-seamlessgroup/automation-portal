@@ -1,9 +1,15 @@
 import { load, saveAll, genId } from "./_store.local";
 import type { Scenario } from "./_store.local";
 
+// Simulate API delay for create operation (6 seconds)
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 type CreateInput = Omit<Scenario, "id" | "status"> & Partial<Pick<Scenario, "status">>;
 
-export function createScenarioLocal(input: CreateInput): Scenario {
+export async function createScenarioLocal(input: CreateInput): Promise<Scenario> {
+  // Simulate 6 second API delay
+  await sleep(6000);
+
   const now = new Date().toISOString();
   const record: Scenario = {
     id: genId(),
