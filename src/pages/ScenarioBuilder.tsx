@@ -853,7 +853,11 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
       });
 
       setTimeout(
-        () => handleSave({ nodes: finalNodes, edges: finalEdges }),
+        () => {
+          if (autosaveEnabled && scenarioId !== "new") {
+            handleSave({ nodes: finalNodes, edges: finalEdges });
+          }
+        },
         100
       );
       // re-enable opening after state settles
@@ -877,6 +881,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
       setEdges,
       setNodes,
       setSelectedId,
+      autosaveEnabled,
     ]
   );
 
@@ -949,27 +954,37 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
         handleRedo();
       }
       if ((e.key === "Delete" || e.key === "Backspace") && selectedNode) {
-        e.preventDefault();
-        setConfirmDialog({
-          open: true,
-          title: "Delete Node",
-          message:
-            "Are you sure you want to delete this node? This action cannot be undone.",
-          confirmText: "Delete",
-          cancelText: "Cancel",
-          confirmStyle: "danger",
-          onConfirm: () => {
-            deleteNode(selectedNode.id);
-            setSelectedId(null);
-            setDrawerOpen(false);
-            setHasUnsavedChanges(false);
-            setOriginalNodeData(null);
-            closeDialog();
-          },
-          onCancel: () => {
-            closeDialog();
-          },
-        });
+        // Only trigger delete node if not focused on input/textarea
+        const activeElement = document.activeElement;
+        const isInputFocused = activeElement && (
+          activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          (activeElement as HTMLElement).contentEditable === 'true'
+        );
+
+        if (!isInputFocused) {
+          e.preventDefault();
+          setConfirmDialog({
+            open: true,
+            title: "Delete Node",
+            message:
+              "Are you sure you want to delete this node? This action cannot be undone.",
+            confirmText: "Delete",
+            cancelText: "Cancel",
+            confirmStyle: "danger",
+            onConfirm: () => {
+              deleteNode(selectedNode.id);
+              setSelectedId(null);
+              setDrawerOpen(false);
+              setHasUnsavedChanges(false);
+              setOriginalNodeData(null);
+              closeDialog();
+            },
+            onCancel: () => {
+              closeDialog();
+            },
+          });
+        }
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
         e.preventDefault(); /* Auto-save is now automatic */
@@ -1105,8 +1120,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
           if (typeof obj.scheduleEnabled === "boolean")
             setScheduleEnabled(obj.scheduleEnabled);
           if (obj.interval) setIntervalStr(obj.interval);
-          // Only save if this is not a new scenario
-          if (scenarioId !== "new") {
+          // Only save if this is not a new scenario and autosave is enabled
+          if (scenarioId !== "new" && autosaveEnabled) {
             handleSave();
           }
         } else {
@@ -1400,7 +1415,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                       checked={scheduleEnabled}
                       onChange={(e) => {
                         setScheduleEnabled(e.target.checked);
-                        if (scenarioId !== "new") {
+                        if (scenarioId !== "new" && autosaveEnabled) {
                           setTimeout(() => handleSave(), 100);
                         }
                       }}
@@ -1414,7 +1429,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                       value={interval}
                       onChange={(e) => {
                         setIntervalStr(e.target.value as "15m" | "1h" | "1d");
-                        if (scenarioId !== "new") {
+                        if (scenarioId !== "new" && autosaveEnabled) {
                           setTimeout(() => handleSave(), 100);
                         }
                       }}
@@ -1620,6 +1635,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
         {selectedNode ? (
           <InspectorBody
             node={selectedNode as Node<RFData>}
+            nodes={nodes}
             onChangeNode={changeNode}
             onDeleteNode={(id) => {
               setConfirmDialog({
@@ -1728,8 +1744,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
           setPickerFor(null);
           setSelectedId(id);
           setDrawerOpen(true);
-          // Auto-save when new node is added (only for existing scenarios)
-          if (scenarioId !== "new") {
+          // Auto-save when new node is added (only for existing scenarios and if autosave is enabled)
+          if (scenarioId !== "new" && autosaveEnabled) {
             setTimeout(() => handleSave(), 100);
           }
 
@@ -1823,8 +1839,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                 value={scenarioName}
                 onChange={(e) => {
                   setScenarioName(e.target.value);
-                  // Auto-save when scenario name changes (only for existing scenarios)
-                  if (scenarioId !== "new") {
+                  // Auto-save when scenario name changes (only for existing scenarios and if autosave is enabled)
+                  if (scenarioId !== "new" && autosaveEnabled) {
                     setTimeout(() => handleSave(), 100);
                   }
                 }}
@@ -1837,8 +1853,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                   checked={scheduleEnabled}
                   onChange={(e) => {
                     setScheduleEnabled(e.target.checked);
-                    // Auto-save when schedule changes (only for existing scenarios)
-                    if (scenarioId !== "new") {
+                    // Auto-save when schedule changes (only for existing scenarios and if autosave is enabled)
+                    if (scenarioId !== "new" && autosaveEnabled) {
                       setTimeout(() => handleSave(), 100);
                     }
                   }}
@@ -1850,8 +1866,8 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
                   value={interval}
                   onChange={(e) => {
                     setIntervalStr(e.target.value as "15m" | "1h" | "1d");
-                    // Auto-save when schedule changes (only for existing scenarios)
-                    if (scenarioId !== "new") {
+                    // Auto-save when schedule changes (only for existing scenarios and if autosave is enabled)
+                    if (scenarioId !== "new" && autosaveEnabled) {
                       setTimeout(() => handleSave(), 100);
                     }
                   }}

@@ -8,13 +8,14 @@ import { GenericAppInspector } from "./GenericAppInspector";
 
 type InspectorBodyProps = {
   node: Node<RFData>;
+  nodes: Node<RFData>[];
   onChangeNode: (node: Node<RFData>) => void;
   onDeleteNode: (id: string) => void;
   onClose?: () => void;
   onShowAlert?: (message: string) => void;
 };
 
-export function InspectorBody({ node, onChangeNode, onDeleteNode, onClose, onShowAlert }: InspectorBodyProps) {
+export function InspectorBody({ node, nodes, onChangeNode, onDeleteNode, onClose, onShowAlert }: InspectorBodyProps) {
   const isApp = node.type === "app";
   const data = (node.data || {}) as RFData;
 
@@ -23,6 +24,7 @@ export function InspectorBody({ node, onChangeNode, onDeleteNode, onClose, onSho
     return (
       <GmailInspector
         node={node}
+        nodes={nodes}
         onChangeNode={onChangeNode}
         onDeleteNode={onDeleteNode}
         onClose={onClose}
@@ -35,6 +37,7 @@ export function InspectorBody({ node, onChangeNode, onDeleteNode, onClose, onSho
     return (
       <TelegramInspector
         node={node}
+        nodes={nodes}
         onChangeNode={onChangeNode}
         onDeleteNode={onDeleteNode}
         onClose={onClose}

@@ -7,13 +7,14 @@ import InspectorSkeletonData from "./InspectorSkeletonData";
 
 type GmailInspectorProps = {
   node: Node<RFData>;
+  nodes: Node<RFData>[];
   onChangeNode: (node: Node<RFData>) => void;
   onDeleteNode: (id: string) => void;
   onClose?: () => void;
   onShowAlert?: (message: string) => void;
 };
 
-export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onShowAlert }: GmailInspectorProps) {
+export function GmailInspector({ node, nodes, onChangeNode, onDeleteNode, onClose, onShowAlert }: GmailInspectorProps) {
   const isApp = node.type === "app";
   const data = (node.data || {}) as RFData;
   const appKey = (data.appKey as AppKey) || ("" as AppKey);
@@ -37,6 +38,29 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onSh
   const [hasTested, setHasTested] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [isLoadingTestData, setIsLoadingTestData] = useState<boolean>(false);
+
+  // Local state for form values - separate from node data to avoid triggering unsaved changes
+  const [localValues, setLocalValues] = useState<Record<string, unknown>>(data.values || {});
+
+  // Sync local values with node data when node changes
+  useEffect(() => {
+    setLocalValues(data.values || {});
+  }, [data.values]);
+
+  const writeValue = (k: string, v: unknown) => {
+    const newValues = { ...localValues, [k]: v };
+    setLocalValues(newValues);
+
+    // Immediately save to node data
+    const updatedNode = {
+      ...node,
+      data: {
+        ...node.data,
+        values: newValues
+      }
+    };
+    onChangeNode(updatedNode);
+  };
 
   // Header title override for Gmail
   const headerTitle = data.label || "Gmail – Watch emails";
@@ -108,28 +132,6 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onSh
     await handleTestGmail();
   };
 
-  // Local state for form values - separate from node data to avoid triggering unsaved changes
-  const [localValues, setLocalValues] = useState<Record<string, unknown>>(data.values || {});
-
-  // Sync local values with node data when node changes
-  useEffect(() => {
-    setLocalValues(data.values || {});
-  }, [data.values]);
-
-  const writeValue = (k: string, v: unknown) => {
-    const newValues = { ...localValues, [k]: v };
-    setLocalValues(newValues);
-
-    // Immediately save to node data
-    const updatedNode = {
-      ...node,
-      data: {
-        ...node.data,
-        values: newValues
-      }
-    };
-    onChangeNode(updatedNode);
-  };
   const renderField = (field: {
     key: string;
     label: string;
@@ -318,6 +320,137 @@ export function GmailInspector({ node, onChangeNode, onDeleteNode, onClose, onSh
       height: "100%",
       position: "relative"
     }}>
+      {/* Variable Side Panel */}
+      {(() => {
+        // Only show panel if we have connected Gmail nodes with variables
+        const gmailNodes = nodes.filter(n =>
+          n.data?.appKey?.toLowerCase().includes('gmail') &&
+          n.id !== node.id
+        );
+
+        if (gmailNodes.length === 0) return null;
+
+        return (
+          <div style={{
+            position: "fixed",
+            right: "360px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: "300px",
+            maxHeight: "80vh",
+            background: "white",
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+            zIndex: 9999,
+            overflow: "auto"
+          }}>
+            <div style={{
+              padding: "16px",
+              borderBottom: "1px solid #e5e7eb",
+              background: "#f9fafb"
+            }}>
+              <h4 style={{ margin: "0 0 8px 0", fontSize: "14px", fontWeight: "600", color: "#374151" }}>
+                Available Variables
+              </h4>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6b7280" }}>
+                Click on a variable to insert it into the focused field
+              </p>
+            </div>
+            <div style={{ padding: "8px" }}>
+              {gmailNodes.map((gmailNode) => {
+                const nodeLabel = gmailNode.data?.label || 'Gmail Node';
+                return (
+                  <div key={gmailNode.id} style={{ marginBottom: "16px" }}>
+                    <div style={{
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      color: "#374151",
+                      marginBottom: "8px",
+                      padding: "4px 8px",
+                      background: "#f3f4f6",
+                      borderRadius: "4px"
+                    }}>
+                      {nodeLabel}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      {[
+                        'latest_email_subject',
+                        'latest_email_body',
+                        'latest_email_sender',
+                        'latest_email_date',
+                        'email_count'
+                      ].map((variable) => (
+                        <button
+                          key={variable}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            // Store the currently focused element before any DOM changes
+                            const focusedElement = document.activeElement as HTMLInputElement;
+                            if (!focusedElement || focusedElement.tagName !== 'INPUT') {
+                              return;
+                            }
+
+                            const variableText = `{${nodeLabel}.${variable}}`;
+                            const start = focusedElement.selectionStart || 0;
+                            const end = focusedElement.selectionEnd || 0;
+                            const currentValue = focusedElement.value || "";
+                            const newValue = currentValue.substring(0, start) + variableText + currentValue.substring(end);
+
+                            focusedElement.value = newValue;
+
+                            // Update cursor position
+                            const newCursorPos = start + variableText.length;
+                            focusedElement.setSelectionRange(newCursorPos, newCursorPos);
+
+                            // Trigger React state update
+                            focusedElement.dispatchEvent(new Event('input', { bubbles: true }));
+                            focusedElement.dispatchEvent(new Event('change', { bubbles: true }));
+
+                            // Immediately return focus to prevent focus loss
+                            focusedElement.focus();
+                          }}
+                          style={{
+                            padding: "6px 8px",
+                            textAlign: "left",
+                            fontSize: "12px",
+                            color: "#6b7280",
+                            background: "transparent",
+                            border: "1px solid #d1d5db",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                            fontFamily: "monospace",
+                            outline: "none",
+                            WebkitUserSelect: "none",
+                            MozUserSelect: "none",
+                            msUserSelect: "none",
+                            userSelect: "none"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "#f3f4f6";
+                            e.currentTarget.style.borderColor = "#9ca3af";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "transparent";
+                            e.currentTarget.style.borderColor = "#d1d5db";
+                          }}
+                        >
+                          {variable}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Header */}
       <div
         style={{

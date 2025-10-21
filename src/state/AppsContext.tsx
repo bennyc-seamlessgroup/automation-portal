@@ -8,7 +8,6 @@ import React, {
 import { AppsContext } from "./AppsContext.context";
 import type { AppSpec } from "../pages/scenario-builder/types";
 import { getAppsService } from "../services/apps";
-import { load, saveAll } from "../services/apps/_store.local";
 
 // Temporary hardcoded data for testing
 const TEMPORARY_APPS: AppSpec[] = [
@@ -53,63 +52,58 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [apps, setApps] = useState<AppSpec[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasLoadedInitially, setHasLoadedInitially] = useState(false);
 
   const preload = useCallback(async () => {
+    // Don't preload if already loaded initially
+    if (hasLoadedInitially) {
+      console.log('[AppsContext] Apps already loaded initially, skipping preload');
+      return;
+    }
+
     try {
-      console.log('[AppsContext] Background preloading apps...');
+      console.log('[AppsContext] 🔄 Loading apps after user login...');
 
       setIsLoading(true);
 
-      // First try to load from localStorage
-      let cachedApps = load();
-      console.log('[AppsContext] Loaded from localStorage:', cachedApps.length, 'apps');
-
-      // If we have cached data, use it immediately
-      if (cachedApps && cachedApps.length > 0) {
-        setApps(cachedApps);
-        console.log('[AppsContext] Using cached apps, no API call needed');
-      } else {
-        // If no cached data, load from service and cache it
-        console.log('[AppsContext] No cached data, loading from service');
-        try {
-          const appsService = getAppsService();
-          const result = await appsService.list({});
-          console.log('[AppsContext] Preload result:', result);
-          setApps(result.items);
-          saveAll(result.items); // Cache for future use
-        } catch (error) {
-          console.warn('[AppsContext] Service failed, using temporary data:', error);
-          setApps(TEMPORARY_APPS);
-          saveAll(TEMPORARY_APPS); // Cache fallback data
-        }
-      }
+      // Use the unified service (which handles both API and local logic)
+      const appsService = getAppsService();
+      const result = await appsService.list({});
+      console.log(`[AppsContext] ✅ Service returned ${result.items.length} apps`);
+      setApps(result.items);
+      setHasLoadedInitially(true);
     } catch (error) {
-      console.error('Failed to preload apps:', error);
-      setApps([]);
+      console.warn('[AppsContext] ❌ Service failed, using temporary fallback data:', error);
+      setApps(TEMPORARY_APPS);
+      setHasLoadedInitially(true);
     } finally {
       setIsLoading(false);
     }
-  }, []); // Remove appsService dependency since it's a singleton
+  }, [hasLoadedInitially]);
 
   const refresh = useCallback(async (params?: { category?: string; search?: string }) => {
     try {
-      console.log('[AppsContext] Loading apps...');
+      console.log('[AppsContext] 🔄 Refreshing apps from service...');
 
       setIsLoading(true);
 
-      // Load fresh data from service
+      // Use the unified service for refresh
       const appsService = getAppsService();
       const result = await appsService.list(params || {});
-      console.log('[AppsContext] Refresh result:', result);
+      console.log(`[AppsContext] ✅ Service returned ${result.items.length} apps`);
       setApps(result.items);
-      saveAll(result.items); // Update cache
+      setHasLoadedInitially(true);
     } catch (error) {
-      console.error('Failed to load apps:', error);
-      setApps([]);
+      console.error('[AppsContext] ❌ Service refresh failed:', error);
+
+      // If service fails completely, use temporary fallback
+      console.warn(`[AppsContext] 🔄 Service failed, using ${TEMPORARY_APPS.length} fallback apps`);
+      setApps(TEMPORARY_APPS);
+      setHasLoadedInitially(true);
     } finally {
       setIsLoading(false);
     }
-  }, []); // Remove appsService dependency since it's a singleton
+  }, []);
 
   // Listen for storage events to sync across tabs
   useEffect(() => {
@@ -132,14 +126,13 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
-    // Load app data immediately when context is created for session caching
-    console.log('[AppsContext] Context initialized, loading app data for session...');
-    preload();
-  }, [preload]);
+    // Apps are loaded on-demand after login via BackgroundPreloader
+    console.log('[AppsContext] Context initialized, apps will load after user login');
+  }, []);
 
   const value = useMemo(
-    () => ({ apps, isLoading, refresh, preload }),
-    [apps, isLoading, refresh, preload]
+    () => ({ apps, isLoading, refresh, preload, hasLoadedInitially }),
+    [apps, isLoading, refresh, preload, hasLoadedInitially]
   );
   return (
     <AppsContext.Provider value={value}>

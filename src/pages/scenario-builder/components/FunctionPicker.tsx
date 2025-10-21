@@ -25,13 +25,13 @@ export function FunctionPicker({ open, onPick, onClose, initialCategory = "apps"
 
   useEffect(() => {
     if (open) {
-      console.log('[FunctionPicker] Opening picker, using cached data');
+      console.log(`[FunctionPicker] 📂 Opening picker with ${apps.length} cached apps`);
       setActive(initialCategory);
       setQ("");
       // Use cached app data - no need to refresh on every open
       // Refresh only when refresh button is clicked
     }
-  }, [open, initialCategory]); // Remove refresh dependency since it's now stable
+  }, [open, initialCategory, apps.length]);
 
   const items = useMemo(
     () =>

@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { useState, useEffect, Suspense, lazy } from 'react'
+import { useState, useEffect, Suspense, lazy, useContext } from 'react'
 import React from 'react'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
@@ -19,17 +19,21 @@ import Dashboard from './pages/Dashboard'
 
 // 🔧 state context for scenarios (lightweight data layer)
 import { ScenariosProvider } from './state/ScenariosContext'
-import { AppsProvider } from './state/AppsContext'
+import { AppsProvider, AppsContext } from './state/AppsContext'
 
 // Background preloader component
 const BackgroundPreloader: React.FC = () => {
   const location = useLocation();
+  const { preload, hasLoadedInitially } = useContext(AppsContext) || { preload: async () => {}, hasLoadedInitially: false };
 
   useEffect(() => {
-    // Apps data is now loaded automatically when AppsContext is created
-    // No need to preload here anymore
-    console.log('[App] Apps data loaded automatically by AppsContext');
-  }, [location.pathname]);
+    // Load apps when user navigates away from login page (after "login")
+    // But only if not already loaded initially
+    if (location.pathname !== '/login' && !hasLoadedInitially) {
+      console.log('[BackgroundPreloader] 🚀 User navigated away from login, triggering app load...');
+      preload();
+    }
+  }, [location.pathname, hasLoadedInitially, preload]);
 
   return null;
 };
