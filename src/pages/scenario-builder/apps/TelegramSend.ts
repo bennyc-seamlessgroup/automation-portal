@@ -1,74 +1,10 @@
 import type { AppSpec } from '../types';
 
-export type ConfigurationPhase = {
-  key: string;
-  name: string;
-  fields: {
-    key: string;
-    label: string;
-    placeholder?: string;
-    type?: "text" | "number" | "select" | "button";
-    options?: string[];
-    action?: string; // For buttons, the action to trigger
-  }[];
-};
-
 export class TelegramSend {
   static readonly appKey = 'telegram';
   static readonly appName = 'Telegram';
   static readonly appColor = '#0088cc';
   static readonly appIcon = '💬';
-
-  static getConfigurationPhases(appKey: string): ConfigurationPhase[] {
-    if (appKey === 'telegramSend') {
-      return [
-        {
-          key: 'connect',
-          name: 'Connect',
-          fields: [
-            {
-              key: 'botToken',
-              label: 'Bot Token',
-              placeholder: 'Enter your Telegram bot token',
-              type: 'text'
-            },
-            {
-              key: 'connectBot',
-              label: 'Connect Telegram Bot',
-              type: 'button',
-              action: 'connectTelegram'
-            }
-          ]
-        },
-        {
-          key: 'configure',
-          name: 'Configure',
-          fields: [
-            {
-              key: 'chatId',
-              label: 'Chat ID',
-              type: 'select',
-              options: ['Select Chat...', 'Personal Chat', 'Group Chat', 'Channel']
-            },
-            {
-              key: 'messageText',
-              label: 'Message Text',
-              placeholder: 'Enter the message to send',
-              type: 'text'
-            },
-            {
-              key: 'continue',
-              label: 'Continue to Test',
-              type: 'button',
-              action: 'continueToTest'
-            }
-          ]
-        }
-      ];
-    }
-
-    return [];
-  }
 
   static getActions(): AppSpec[] {
     return [
@@ -85,16 +21,98 @@ export class TelegramSend {
           },
           {
             key: 'chatId',
-            label: 'Chat ID *',
+            label: 'Chat ID',
             type: 'select',
-            options: ['Personal Chat', 'Group Chat', 'Channel']
+            options: ['Personal Chat', 'Group Chat', 'Channel'],
+            required: true
           },
           {
             key: 'messageText',
-            label: 'Message Text *',
-            placeholder: 'Message to send'
+            label: 'Message Text',
+            placeholder: 'Message to send',
+            type: 'textarea',
+            required: true
           }
-        ]
+        ],
+        // Data inputs that can accept variables from other nodes (like Gmail)
+        dataInputs: [
+          {
+            key: 'body_plain',
+            label: 'Body Plain',
+            type: 'string',
+            description: 'Plain text body from Gmail email (use {Gmail Node Name.body_plain})',
+            required: false
+          },
+          {
+            key: 'subject',
+            label: 'Subject',
+            type: 'string',
+            description: 'Subject from Gmail email (use {Gmail Node Name.subject})',
+            required: false
+          },
+          {
+            key: 'from_name',
+            label: 'From Name',
+            type: 'string',
+            description: 'Sender name from Gmail email (use {Gmail Node Name.from_name})',
+            required: false
+          },
+          {
+            key: 'from_email',
+            label: 'From Email',
+            type: 'string',
+            description: 'Sender email from Gmail email (use {Gmail Node Name.from_email})',
+            required: false
+          },
+          {
+            key: 'body_html',
+            label: 'Body Html',
+            type: 'string',
+            description: 'HTML body from Gmail email (use {Gmail Node Name.body_html})',
+            required: false
+          }
+        ],
+        inspector: {
+          steps: [
+            { id: 1, title: "Connect", description: "Connect your Telegram bot", tab: "connect" },
+            { id: 2, title: "Configure", description: "Set up your message settings", tab: "configure" },
+            { id: 3, title: "Test", description: "Test your Telegram message", tab: "test" }
+          ],
+          defaultTab: "connect",
+          headerTitle: "Telegram – Send message",
+          tabs: [
+            { key: "connect", label: "Connect", required: true },
+            { key: "configure", label: "Configure", required: true },
+            { key: "test", label: "Test", required: false }
+          ],
+          connections: {
+            type: "token",
+            service: "telegram",
+            fields: [
+              {
+                key: "botToken",
+                label: "Bot Token",
+                type: "password",
+                placeholder: "Enter your Telegram bot token",
+                required: true
+              }
+            ]
+          },
+          validation: {
+            botToken: {
+              required: true,
+              pattern: "^[0-9]+:.*$"
+            },
+            chatId: {
+              required: true,
+              custom: (value: any) => !value || value === "Select Chat..." ? "Please select a chat to send the message to." : true
+            },
+            messageText: {
+              required: true,
+              custom: (value: any) => !value || value.trim() === "" ? "Please enter a message to send." : true
+            }
+          }
+        }
       }
     ];
   }

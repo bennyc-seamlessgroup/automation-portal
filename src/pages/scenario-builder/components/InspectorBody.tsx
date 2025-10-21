@@ -2,9 +2,7 @@
 import type { Node } from "reactflow";
 
 import type { RFData } from "../types";
-import { GmailInspector } from "./GmailInspector";
-import { TelegramInspector } from "./TelegramInspector";
-import { GenericAppInspector } from "./GenericAppInspector";
+import { UniversalInspector } from "./UniversalInspector";
 
 type InspectorBodyProps = {
   node: Node<RFData>;
@@ -19,10 +17,10 @@ export function InspectorBody({ node, nodes, onChangeNode, onDeleteNode, onClose
   const isApp = node.type === "app";
   const data = (node.data || {}) as RFData;
 
-  // Route to appropriate inspector based on app type
-  if (isApp && String(data.appKey).toLowerCase().includes("gmail")) {
+  // Use universal inspector for all app nodes
+  if (isApp && data.appKey) {
     return (
-      <GmailInspector
+      <UniversalInspector
         node={node}
         nodes={nodes}
         onChangeNode={onChangeNode}
@@ -33,26 +31,19 @@ export function InspectorBody({ node, nodes, onChangeNode, onDeleteNode, onClose
     );
   }
 
-  if (isApp && String(data.appKey).toLowerCase().includes("telegram")) {
-    return (
-      <TelegramInspector
-        node={node}
-        nodes={nodes}
-        onChangeNode={onChangeNode}
-        onDeleteNode={onDeleteNode}
-        onClose={onClose}
-        onShowAlert={onShowAlert}
-      />
-    );
-  }
-
-  // Default to generic inspector for all other apps
+  // Default fallback for non-app nodes or nodes without appKey
   return (
-    <GenericAppInspector
-      node={node}
-      onChangeNode={onChangeNode}
-      onDeleteNode={onDeleteNode}
-    />
+    <div style={{
+      padding: "24px",
+      textAlign: "center",
+      color: "#6b7280",
+      backgroundColor: "#f9fafb",
+      borderRadius: "8px",
+      margin: "16px"
+    }}>
+      <div style={{ fontSize: "48px", marginBottom: "16px" }}>📋</div>
+      <p>Select an app node to configure its settings.</p>
+    </div>
   );
 }
 
