@@ -1,14 +1,36 @@
-/* Map of known app keys to pretty badges (same as your current file) */
+/* Map of known app keys to pretty badges
+ *
+ * ICON RENDERING SYSTEM:
+ * - Image paths (starting with '/'): Rendered as <img> tags with professional logos
+ * - Emoji/text: Rendered as text content for fallback or simple icons
+ * - Gmail apps: Use /src/assets/icons/icon_gmail.png
+ * - Telegram apps: Use /src/assets/icons/icon_telegram.png
+ * - Other apps: Use emoji icons (can be updated to logos later)
+ *
+ * BADGE STYLES:
+ * - 22px circles with thin grey borders (#e5e7eb)
+ * - 16px icons inside for proper scaling
+ * - Subtle shadows for depth without being overwhelming
+ * - Professional branding with logo images where available
+ * - Consistent appearance across all app types
+ */
 const APP_BADGES: Record<string, { icon: string; color: string; title?: string }> = {
-  // Apps
-  gmailSend: { icon: "✉️", color: "#ef4444", title: "Gmail — Send" },
-  gmailSearch: { icon: "🔎", color: "#dc2626", title: "Gmail — Search" },
+  // Apps - Gmail (all use professional Gmail logo)
+  gmailSend: { icon: "/src/assets/icons/icon_gmail.png", color: "#ef4444", title: "Gmail — Send Email" },
+  gmailSearch: { icon: "/src/assets/icons/icon_gmail.png", color: "#dc2626", title: "Gmail — Search Emails" },
+  gmailWatchEmails: { icon: "/src/assets/icons/icon_gmail.png", color: "#ef4444", title: "Gmail — Watch Emails" },
+  gmailWatchEmailsV2: { icon: "/src/assets/icons/icon_gmail.png", color: "#ef4444", title: "Gmail — Watch Emails V2" },
+
+  // Apps - Telegram (all use professional Telegram logo)
+  telegramSend: { icon: "/src/assets/icons/icon_telegram.png", color: "#0088cc", title: "Telegram — Send Message" },
+  telegramSendV2: { icon: "/src/assets/icons/icon_telegram.png", color: "#0088cc", title: "Telegram — Send Message V2" },
+
+  // Other apps (using emoji for now - can be updated to logos later)
   slackPost: { icon: "💬", color: "#22c55e", title: "Slack — Post" },
   calendarCreate: { icon: "📅", color: "#0ea5e9", title: "Google Calendar — Create Event" },
   sheetsAddRow: { icon: "📊", color: "#16a34a", title: "Google Sheets — Add Row" },
   driveUpload: { icon: "🗂️", color: "#f59e0b", title: "Google Drive — Upload" },
   outlookSend: { icon: "📧", color: "#2563eb", title: "Outlook — Send" },
-  telegramSend: { icon: "📨", color: "#38bdf8", title: "Telegram — Send" },
 
   // AI
   aiSummarize: { icon: "🪄", color: "#8b5cf6", title: "AI — Summarize" },
@@ -55,6 +77,22 @@ export function AppBadge({ k, fallbackLabel }: { k?: string; fallbackLabel?: str
   const title = spec?.title || fallbackLabel || "App";
   const icon = spec?.icon || (fallbackLabel ? fallbackLabel.slice(0, 1).toUpperCase() : "⚙️");
   const bg = spec?.color || "#9ca3af";
+
+  // Render image icons vs emoji/text icons
+  const iconElement = icon.startsWith('/') ? (
+    <img
+      src={icon}
+      alt={title}
+      style={{
+        width: 16,
+        height: 16,
+        objectFit: "contain",
+      }}
+    />
+  ) : (
+    icon
+  );
+
   return (
     <span
       className="d-inline-flex align-items-center justify-content-center rounded-circle"
@@ -65,9 +103,11 @@ export function AppBadge({ k, fallbackLabel }: { k?: string; fallbackLabel?: str
         fontSize: 12,
         background: bg,
         color: "#fff",
+        border: "1px solid #e5e7eb",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
       }}
     >
-      {icon}
+      {iconElement}
     </span>
   );
 }
@@ -83,8 +123,16 @@ export function AppsInline({ keysOrLabels, max = 3 }: { keysOrLabels: (string | 
       ))}
       {over && (
         <span
-          className="d-inline-flex align-items-center justify-content-center rounded-circle border"
-          style={{ width: 22, height: 22, fontSize: 10, background: "#eef2ff", color: "#4f46e5" }}
+          className="d-inline-flex align-items-center justify-content-center rounded-circle"
+          style={{
+            width: 22,
+            height: 22,
+            fontSize: 10,
+            background: "#f8fafc",
+            color: "#374151",
+            border: "1px solid #e5e7eb",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+          }}
           title={clean.join(", ")}
         >
           +{clean.length - show.length}

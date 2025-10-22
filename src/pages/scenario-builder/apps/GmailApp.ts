@@ -30,7 +30,14 @@ export class GmailApp {
   static readonly appKey = 'gmail';
   static readonly appName = 'Gmail';
   static readonly appColor = '#ef4444';
-  static readonly appIcon = '✉️';
+  // 🎨 PROFESSIONAL ICON SYSTEM
+  // ============================
+  // All Gmail functions now use the professional Gmail icon image:
+  // - Icon path: /src/assets/icons/icon_gmail.png
+  // - UI components automatically detect image vs emoji icons
+  // - Consistent branding across all Gmail functions
+  // - Maintains backward compatibility with emoji icons
+  static readonly appIcon = '/src/assets/icons/icon_gmail.png';
 
   // Grouping class - aggregates all Gmail functionality
   static getAllSpecs(): AppSpec[] {

@@ -5,7 +5,7 @@ export class GmailWatchEmailsV2 {
   static readonly appKey = 'gmail';
   static readonly appName = 'Gmail';
   static readonly appColor = '#ef4444';
-  static readonly appIcon = '✉️';
+  static readonly appIcon = '/src/assets/icons/icon_gmail.png';
 
   static getTriggers(): AppSpec[] {
     return [
@@ -29,13 +29,6 @@ export class GmailWatchEmailsV2 {
             label: 'Criteria',
             type: 'select',
             options: ['All Messages', 'Only Read Messages', 'Only Unread Messages']
-          },
-          {
-            key: 'apiVersion',
-            label: 'API Version',
-            type: 'select',
-            options: ['V2 (Recommended)', 'V1 (Legacy)'],
-            required: true
           }
         ],
         // Email data outputs that other nodes can use (same as V1 for compatibility)
@@ -78,7 +71,38 @@ export class GmailWatchEmailsV2 {
             { id: 3, title: "Test", description: "Test your Gmail connection", tab: "test" }
           ],
           defaultTab: "connect",
-          headerTitle: "Gmail – Watch emails V2",
+          headerTitle: "Gmail – Watch emails",
+          tabs: [
+            { key: "connect", label: "Connect", required: true },
+            { key: "configure", label: "Configure", required: true },
+            { key: "test", label: "Test", required: false }
+          ],
+          connections: {
+            type: "oauth",
+            service: "gmail",
+            fields: [
+              {
+                key: "account",
+                label: "Gmail Account",
+                type: "select",
+                placeholder: "Select connected Gmail account",
+                required: true
+              }
+            ]
+          },
+          validation: {
+            mailbox: {
+              required: true,
+              custom: (value: any) => !value ? "Please select a folder to watch before continuing." : true
+            }
+          },
+          // 🔧 CUSTOM FIELD RENDERING
+          // ========================
+          // For complex fields that need custom rendering beyond standard form inputs
+          // Currently not needed for Gmail Watch V2, but structure maintained for consistency
+          customFields: {
+            // Future custom fields can be added here if needed
+          }
         }
       }
     ];

@@ -401,25 +401,26 @@ export function FunctionPicker({ open, onPick, onClose, initialCategory = "apps"
                       e.currentTarget.style.background = "#fff";
                     }}
                   >
-                    {/* 🔄 VERSION BADGE - Lower right corner of card */}
+                    {/* 🔄 VERSION BADGE - Function Picker Card Version */}
                     {f.version && (
                       <div
                         style={{
                           position: "absolute",
                           bottom: 8,
                           right: 8,
-                          background: f.version === 1 ? "#6b7280" : "#3b82f6",
-                          color: "white",
-                          fontSize: 10,
+                          background: "#f3f4f6",
+                          color: "#374151",
+                          fontSize: 11,
                           fontWeight: "bold",
                           borderRadius: "50%",
-                          width: 20,
-                          height: 20,
+                          width: 24,
+                          height: 24,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          border: "2px solid white",
-                          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                          border: "2px solid #e5e7eb",
+                          boxShadow: "0 1px 1px rgba(0,0,0,0.15)",
+                          zIndex: 100,
                         }}
                         title={`Version ${f.version}`}
                       >
@@ -434,20 +435,46 @@ export function FunctionPicker({ open, onPick, onClose, initialCategory = "apps"
                           borderRadius: "50%",
                           background: f.color,
                           color: "#fff",
+                          border: "1px solid #e5e7eb",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           fontSize: 16,
                           flexShrink: 0,
+                          overflow: "hidden",
                         }}
                       >
-                        {f.icon ?? ""}
+                        {/* 🎨 ICON RENDERING SYSTEM
+                         * ========================
+                         * Automatically detects and renders icons appropriately:
+                         * - Image icons (paths starting with '/'): Rendered as <img> tags
+                         * - Emoji icons (text): Rendered as text content
+                         * - Maintains backward compatibility with existing emoji icons
+                         * - Professional branding with image icons where available
+                         * - Light grey borders (#e5e7eb) for subtle definition
+                         * - Clean appearance without shadows
+                         */}
+                        {f.icon?.startsWith('/') ? (
+                          <img
+                            src={f.icon}
+                            alt={f.name}
+                            style={{
+                              width: 32,
+                              height: 32,
+                              objectFit: "contain",
+                            }}
+                          />
+                        ) : (
+                          f.icon ?? ""
+                        )}
                       </span>
                       <div style={{ flex: 1 }}>
-                        {/* 🔄 VERSION BADGE - Lower right corner of card
+                        {/* 🔄 VERSION BADGE - Function Picker Card Version
                          * Shows version badges for all versions (V1, V2, V3, etc.)
-                         * V1 uses gray color, V2+ uses blue color to be less obvious
-                         * This helps users distinguish between versions without cluttering names
+                         * Light grey badges for all versions displaying "V1", "V2" format
+                         * Positioned in bottom-right corner (bottom: 8, right: 8)
+                         * Light grey background (#f3f4f6) with subtle border and shadow
+                         * Consistent styling across all versions for clean appearance
                          * TO ADD VERSION SUPPORT FOR NEW APPS:
                          * 1. Ensure the AppSpec includes version field
                          * 2. The badge logic above will automatically display it

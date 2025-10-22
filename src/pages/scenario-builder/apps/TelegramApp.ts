@@ -6,7 +6,7 @@ export class TelegramApp {
   static readonly appKey = 'telegram';
   static readonly appName = 'Telegram';
   static readonly appColor = '#0088cc';
-  static readonly appIcon = '💬';
+  static readonly appIcon = '/src/assets/icons/icon_telegram.png';
 
   // Grouping class - aggregates all Telegram functionality
   static getAllSpecs(): AppSpec[] {

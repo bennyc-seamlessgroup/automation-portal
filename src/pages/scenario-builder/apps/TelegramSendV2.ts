@@ -5,7 +5,7 @@ export class TelegramSendV2 {
   static readonly appKey = 'telegram';
   static readonly appName = 'Telegram';
   static readonly appColor = '#0088cc';
-  static readonly appIcon = '💬';
+  static readonly appIcon = '/src/assets/icons/icon_telegram.png';
 
   static getActions(): AppSpec[] {
     return [
@@ -34,13 +34,6 @@ export class TelegramSendV2 {
             label: 'Message Text',
             placeholder: 'Message to send',
             type: 'textarea',
-            required: true
-          },
-          {
-            key: 'apiVersion',
-            label: 'API Version',
-            type: 'select',
-            options: ['V2 (Recommended)', 'V1 (Legacy)'],
             required: true
           }
         ],

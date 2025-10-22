@@ -4,7 +4,7 @@ export class TelegramSend {
   static readonly appKey = 'telegram';
   static readonly appName = 'Telegram';
   static readonly appColor = '#0088cc';
-  static readonly appIcon = '💬';
+  static readonly appIcon = '/src/assets/icons/icon_telegram.png';
 
   static getActions(): AppSpec[] {
     return [

@@ -4,7 +4,13 @@ export class GmailWatchEmails {
   static readonly appKey = 'gmail';
   static readonly appName = 'Gmail';
   static readonly appColor = '#ef4444';
-  static readonly appIcon = '✉️';
+  // 🎨 ICON SYSTEM: Image icons vs Emoji icons
+  // ===========================================
+  // - Image icons: Use absolute path like '/src/assets/icons/icon_gmail.png'
+  // - Emoji icons: Use emoji character like '✉️' or '💬'
+  // - UI automatically detects and renders appropriately
+  // - Image icons provide professional branding
+  static readonly appIcon = '/src/assets/icons/icon_gmail.png';
 
   static getTriggers(): AppSpec[] {
     return [
@@ -89,12 +95,19 @@ export class GmailWatchEmails {
               }
             ]
           },
-        validation: {
-          mailbox: {
-            required: true,
-            custom: (value: any) => !value ? "Please select a folder to watch before continuing." : true
+          validation: {
+            mailbox: {
+              required: true,
+              custom: (value: any) => !value ? "Please select a folder to watch before continuing." : true
+            }
+          },
+          // 🔧 CUSTOM FIELD RENDERING
+          // ========================
+          // For complex fields that need custom rendering beyond standard form inputs
+          // Currently not needed for Gmail Watch, but structure maintained for consistency
+          customFields: {
+            // Future custom fields can be added here if needed
           }
-        }
         }
       }
     ];

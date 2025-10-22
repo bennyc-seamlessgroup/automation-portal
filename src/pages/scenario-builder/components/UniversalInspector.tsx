@@ -1028,6 +1028,9 @@ export function UniversalInspector({ node, nodes, onChangeNode, onDeleteNode, on
                   if (appKey === "telegramSend" && f.key === "botToken") {
                     return false;
                   }
+                  if (appKey === "telegramSendV2" && f.key === "botToken") {
+                    return false;
+                  }
                   return f.key.toLowerCase() !== "label";
                 })
                 .map((f) => renderField(f))}
