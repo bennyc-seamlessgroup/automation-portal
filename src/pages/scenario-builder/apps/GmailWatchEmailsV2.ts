@@ -1,6 +1,7 @@
+// src/pages/scenario-builder/apps/GmailWatchEmailsV2.ts
 import type { AppSpec } from '../types';
 
-export class GmailWatchEmails {
+export class GmailWatchEmailsV2 {
   static readonly appKey = 'gmail';
   static readonly appName = 'Gmail';
   static readonly appColor = '#ef4444';
@@ -9,12 +10,12 @@ export class GmailWatchEmails {
   static getTriggers(): AppSpec[] {
     return [
       {
-        key: 'gmailWatchEmails',
+        key: 'gmailWatchEmailsV2',
         name: 'Gmail — Watch emails',
-        color: GmailWatchEmails.appColor,
-        icon: GmailWatchEmails.appIcon,
+        color: GmailWatchEmailsV2.appColor,
+        icon: GmailWatchEmailsV2.appIcon,
         description: 'Monitor your Gmail inbox for new emails and trigger workflows based on email content',
-        version: 1,
+        version: 2,
         fields: [
           {
             key: 'mailbox',
@@ -28,9 +29,16 @@ export class GmailWatchEmails {
             label: 'Criteria',
             type: 'select',
             options: ['All Messages', 'Only Read Messages', 'Only Unread Messages']
+          },
+          {
+            key: 'apiVersion',
+            label: 'API Version',
+            type: 'select',
+            options: ['V2 (Recommended)', 'V1 (Legacy)'],
+            required: true
           }
         ],
-        // Email data outputs that other nodes can use
+        // Email data outputs that other nodes can use (same as V1 for compatibility)
         dataOutputs: [
           {
             key: 'body_plain',
@@ -70,31 +78,7 @@ export class GmailWatchEmails {
             { id: 3, title: "Test", description: "Test your Gmail connection", tab: "test" }
           ],
           defaultTab: "connect",
-          headerTitle: "Gmail – Watch emails",
-          tabs: [
-            { key: "connect", label: "Connect", required: true },
-            { key: "configure", label: "Configure", required: true },
-            { key: "test", label: "Test", required: false }
-          ],
-          connections: {
-            type: "oauth",
-            service: "gmail",
-            fields: [
-              {
-                key: "account",
-                label: "Gmail Account",
-                type: "select",
-                placeholder: "Select connected Gmail account",
-                required: true
-              }
-            ]
-          },
-        validation: {
-          mailbox: {
-            required: true,
-            custom: (value: any) => !value ? "Please select a folder to watch before continuing." : true
-          }
-        }
+          headerTitle: "Gmail – Watch emails V2",
         }
       }
     ];

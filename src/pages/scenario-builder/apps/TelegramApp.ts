@@ -1,5 +1,6 @@
 import type { AppSpec } from '../types';
 import { TelegramSend } from './TelegramSend';
+import { TelegramSendV2 } from './TelegramSendV2';
 
 export class TelegramApp {
   static readonly appKey = 'telegram';
@@ -10,12 +11,17 @@ export class TelegramApp {
   // Grouping class - aggregates all Telegram functionality
   static getAllSpecs(): AppSpec[] {
     return [
-      ...TelegramSend.getActions()
+      ...TelegramSend.getActions(),
+      ...TelegramSendV2.getActions()
     ];
   }
 
   // Expose individual app classes for configuration phases
   static getTelegramSendApp() {
     return TelegramSend;
+  }
+
+  static getTelegramSendV2App() {
+    return TelegramSendV2;
   }
 }

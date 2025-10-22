@@ -9,13 +9,85 @@ export interface AppSpec {
   description?: string;
   category?: string;
   tags?: string[];
+  // 🔢 VERSION TRACKING
+  // ==================
+  // Optional version field for API versioning (V1, V2, V3, etc.)
+  version?: number;
+
+  // 📝 FORM FIELDS
+  // ==============
+  // Define the configuration fields shown in the inspector
   fields: {
     key: string;
     label: string;
     placeholder?: string;
-    type?: "text" | "number" | "select";
+    // 🎨 FIELD TYPES
+    // ==============
+    // Available field types for configuration forms
+    type?: "text" | "number" | "select" | "textarea" | "multiselect";
     options?: string[];
+    required?: boolean;
+    validation?: {
+      pattern?: string;
+      min?: number;
+      max?: number;
+    };
   }[];
+
+  // 🔄 DATA FLOW CAPABILITIES
+  // ========================
+  // Optional fields for connecting apps together (data passing)
+  dataOutputs?: Array<{
+    key: string;
+    label: string;
+    type: "string" | "number" | "boolean" | "array" | "object";
+    description?: string;
+  }>;
+  dataInputs?: Array<{
+    key: string;
+    label: string;
+    type: "string" | "number" | "boolean" | "array" | "object";
+    description?: string;
+    required?: boolean;
+  }>;
+
+  // ⚙️ INSPECTOR CONFIGURATION
+  // =========================
+  // Optional configuration for the node inspector interface
+  inspector?: {
+    steps: Array<{
+      id: number;
+      title: string;
+      description: string;
+      tab: "connect" | "configure" | "test";
+    }>;
+    defaultTab?: "connect" | "configure" | "test";
+    headerTitle?: string;
+    tabs?: Array<{
+      key: "connect" | "configure" | "test";
+      label: string;
+      required?: boolean;
+    }>;
+    connections?: {
+      type: "oauth" | "token" | "credentials";
+      service?: string;
+      fields?: Array<{
+        key: string;
+        label: string;
+        type: "text" | "password" | "select";
+        placeholder?: string;
+        options?: string[];
+        required?: boolean;
+      }>;
+    };
+    validation?: {
+      [fieldKey: string]: {
+        required?: boolean;
+        pattern?: string;
+        custom?: (value: any) => boolean | string;
+      };
+    };
+  };
 }
 
 export interface AppListParams {

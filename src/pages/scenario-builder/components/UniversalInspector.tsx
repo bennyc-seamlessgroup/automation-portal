@@ -293,6 +293,39 @@ export function UniversalInspector({ node, nodes, onChangeNode, onDeleteNode, on
       );
     }
 
+    // Handle textarea fields generically
+    if (field.type === "textarea") {
+      const fieldValue = (localValues?.[field.key] ?? "") as string;
+
+      return (
+        <div key={field.key} style={{ marginTop: 10 }}>
+          <div style={builderStyles.formLabel}>
+            {field.label}
+            {field.required && (
+              <span style={{ color: "#dc2626" }}>*</span>
+            )}
+          </div>
+
+          <textarea
+            style={{
+              ...builderStyles.input,
+              width: "100%",
+              minHeight: "80px",
+              resize: "vertical",
+              padding: "8px 12px",
+              borderRadius: "6px",
+              border: "1px solid #d1d5db",
+              fontSize: "14px",
+              fontFamily: "inherit",
+            }}
+            value={fieldValue}
+            onChange={(e) => writeValue(field.key, e.target.value)}
+            placeholder={field.placeholder || "Enter text..."}
+          />
+        </div>
+      );
+    }
+
     // Default text input for other fields
     const fieldValue = (localValues?.[field.key] ?? "") as string;
 

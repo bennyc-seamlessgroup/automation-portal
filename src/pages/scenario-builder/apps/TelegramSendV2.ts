@@ -1,6 +1,7 @@
+// src/pages/scenario-builder/apps/TelegramSendV2.ts
 import type { AppSpec } from '../types';
 
-export class TelegramSend {
+export class TelegramSendV2 {
   static readonly appKey = 'telegram';
   static readonly appName = 'Telegram';
   static readonly appColor = '#0088cc';
@@ -9,12 +10,12 @@ export class TelegramSend {
   static getActions(): AppSpec[] {
     return [
       {
-        key: 'telegramSend',
+        key: 'telegramSendV2',
         name: 'Telegram — Send message',
-        color: TelegramSend.appColor,
-        icon: TelegramSend.appIcon,
+        color: TelegramSendV2.appColor,
+        icon: TelegramSendV2.appIcon,
         description: 'Send messages to Telegram chats or channels using your bot',
-        version: 1,
+        version: 2,
         fields: [
           {
             key: 'botToken',
@@ -25,7 +26,7 @@ export class TelegramSend {
             key: 'chatId',
             label: 'Chat ID',
             type: 'select',
-            options: ['Personal Chat', 'Group Chat', 'Channel'],
+            options: ['Personal Chat', 'Group Chat', 'Channel', 'Supergroup'],
             required: true
           },
           {
@@ -33,6 +34,13 @@ export class TelegramSend {
             label: 'Message Text',
             placeholder: 'Message to send',
             type: 'textarea',
+            required: true
+          },
+          {
+            key: 'apiVersion',
+            label: 'API Version',
+            type: 'select',
+            options: ['V2 (Recommended)', 'V1 (Legacy)'],
             required: true
           }
         ],
@@ -81,7 +89,7 @@ export class TelegramSend {
             { id: 3, title: "Test", description: "Test your Telegram message", tab: "test" }
           ],
           defaultTab: "connect",
-          headerTitle: "Telegram – Send message",
+          headerTitle: "Telegram – Send message V2",
           tabs: [
             { key: "connect", label: "Connect", required: true },
             { key: "configure", label: "Configure", required: true },
