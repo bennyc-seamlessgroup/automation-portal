@@ -1181,6 +1181,7 @@ function EditorShell({ scenarioId }: { scenarioId: string | null }) {
             nodeTypes={nodeTypes}
             connectionMode={ConnectionMode.Loose}
             fitView
+            deleteKeyCode={null}
             onPaneClick={() => {
               setDrawerOpen(
                 false

@@ -1,32 +1,210 @@
 // src/pages/scenario-builder/components/UniversalInspector.tsx
-import type { Node } from "reactflow";
-import type { RFData } from "../types";
-import { APP_CATALOG } from "../catalog";
-/**
- * Universal Inspector Component
- *
- * This component provides a generic inspector interface for any app/node type.
- * It handles the UI construction for inspector windows (Connect, Configure, Test tabs)
- * and delegates app-specific logic to the respective AppSpec definitions.
- *
- * IMPORTANT: This file should ONLY contain UI construction logic and generic
- * field rendering. App-specific validation, alerts, and business logic should
- * be defined in the respective AppSpec files (e.g., GmailWatchEmails.ts).
- *
- * Do NOT add hardcoded references to specific apps, fields, or validation
- * messages in this file. Keep it universal and generic.
- */
-
-import { useState, useEffect } from "react";
-
-import type { AppKey, AppSpec, DataOutput } from "../types";
-import { builderStyles } from "../styles";
+import { useState, useEffect, useRef } from "react";
+import type { Node as RFNode } from "reactflow";
+import type { RFData, AppKey, AppSpec, DataOutput } from "../types";
 import { getAppSpec } from "../utils";
+import { APP_CATALOG } from "../catalog";
+
+const builderStyles = {
+  formLabel: {
+    fontSize: 13,
+    color: "#374151",
+    marginBottom: 6,
+  },
+  select: {
+    appearance: "none",
+  },
+  input: {
+    display: "inline-block",
+    fontSize: 14,
+  },
+  nameInput: {
+    fontSize: 16,
+  },
+} as const;
+
+/**
+ * Variable-aware editor:
+ * - Renders variable tokens like {{nodeId.key}} as badge-like non-editable spans
+ * - Keeps a string value (with tokens) via onChange
+ * - Works with selection insertion from the side panel code (which inserts spans)
+ */
+type VariableTextareaProps = {
+  value: string;
+  onChange: (v: string) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  placeholder?: string;
+  style?: any;
+  // provide nodes to map tokens -> readable labels in badges
+  nodes?: RFNode<RFData>[];
+};
+
+function VariableTextarea({
+  value,
+  onChange,
+  onFocus,
+  onBlur,
+  placeholder,
+  style,
+  nodes = [],
+}: VariableTextareaProps) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const parsedToParts = (val: string) => {
+    // tokens supported: {{nodeId.key}} OR {nodeLabel.key} (legacy) - prefer {{...}} for mapping
+    const parts: { type: "text" | "var"; text?: string; nodeId?: string; key?: string }[] = [];
+    if (!val) return [{ type: "text", text: "" }];
+
+    const tokenRegex = /\{\{([^}]+)\}\}|\{([^}]+)\}/g;
+    let lastIndex = 0;
+    let m: RegExpExecArray | null;
+
+    while ((m = tokenRegex.exec(val)) !== null) {
+      const start = m.index;
+      if (start > lastIndex) {
+        parts.push({ type: "text", text: val.slice(lastIndex, start) });
+      }
+      const token = m[1] ?? m[2]; // prefer double-curly capture
+      if (token) {
+        // Try to parse nodeId.key format
+        const dotIdx = token.indexOf(".");
+        if (dotIdx > 0) {
+          const nodeId = token.slice(0, dotIdx);
+          const key = token.slice(dotIdx + 1);
+          parts.push({ type: "var", nodeId, key });
+        } else {
+          // fallback treat as text
+          parts.push({ type: "text", text: m[0] });
+        }
+      }
+      lastIndex = tokenRegex.lastIndex;
+    }
+
+    if (lastIndex < val.length) {
+      parts.push({ type: "text", text: val.slice(lastIndex) });
+    }
+
+    return parts;
+  };
+
+  // Render parts into innerHTML with badges for var parts
+  const renderPartsToInnerHTML = (val: string) => {
+    const parts = parsedToParts(val);
+    return parts
+      .map((p) => {
+        if (p.type === "text") {
+          // escape < & >
+          return (p.text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        } else {
+          // TypeScript knows this is a "var" part, so nodeId and key exist
+          const varPart = p as { type: "var"; nodeId: string; key: string };
+          const node = nodes.find((n) => n.id === varPart.nodeId);
+          const spec = node ? APP_CATALOG.find((a) => a.key === node.data?.appKey) : undefined;
+          const output = spec?.dataOutputs?.find((o) => o.key === varPart.key);
+          const label = output?.label || varPart.key;
+          // span should be contentEditable=false to act like a badge
+          return `<span contenteditable="false" data-var-node="${varPart.nodeId}" data-var-key="${varPart.key}" style="
+              display:inline-block;
+              padding:2px 8px;
+              margin:0 2px;
+              background:#eef2ff;
+              color:#3730a3;
+              border-radius:12px;
+              font-size:12px;
+              border:1px solid #c7d2fe;
+              white-space:nowrap;
+          ">${label}</span>`;
+        }
+      })
+      .join("");
+  };
+
+  // sync external value -> editor
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const html = renderPartsToInnerHTML(value);
+    if (el.innerHTML !== html) {
+      el.innerHTML = html;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, nodes]);
+
+  // onInput reconstruct value from child nodes
+  const handleInput = () => {
+    const el = ref.current;
+    if (!el) return;
+    const children = Array.from(el.childNodes);
+    let out = "";
+    children.forEach((child) => {
+      if (child.nodeType === 3 /* TEXT_NODE */) {
+        out += child.textContent ?? "";
+      } else if (child.nodeType === 1 /* ELEMENT_NODE */) {
+        const ce = child as HTMLElement;
+        if (ce.dataset && ce.dataset.varNode && ce.dataset.varKey) {
+          out += `{{${ce.dataset.varNode}.${ce.dataset.varKey}}}`;
+        } else {
+          out += ce.textContent ?? "";
+        }
+      }
+    });
+    onChange(out);
+  };
+
+  // handle paste as plain text
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    const el = ref.current;
+    if (!el) return;
+    // Insert plain text at caret
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      el.appendChild(document.createTextNode(text));
+    } else {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(document.createTextNode(text));
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    handleInput();
+  };
+
+  return (
+    <div
+      ref={ref}
+      role="textbox"
+      aria-multiline
+      contentEditable
+      suppressContentEditableWarning
+      onInput={handleInput}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      onPaste={handlePaste}
+      data-placeholder={placeholder}
+      style={{
+        minHeight: 80,
+        padding: "8px 12px",
+        borderRadius: 6,
+        border: "1px solid #d1d5db",
+        outline: "none",
+        fontSize: 14,
+        fontFamily: "inherit",
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+        position: "relative",
+        ...style,
+      }}
+    />
+  );
+}
 
 type UniversalInspectorProps = {
-  node: Node<RFData>;
-  nodes: Node<RFData>[];
-  onChangeNode: (node: Node<RFData>) => void;
+  node: RFNode<RFData>;
+  nodes: RFNode<RFData>[];
+  onChangeNode: (node: RFNode<RFData>) => void;
   onDeleteNode: (id: string) => void;
   onClose?: () => void;
   onShowAlert?: (message: string) => void;
@@ -256,30 +434,17 @@ export function UniversalInspector({ node, nodes, onChangeNode, onDeleteNode, on
             )}
           </div>
 
-          <textarea
-            style={{
-              ...builderStyles.input,
-              width: "100%",
-              minHeight: "80px",
-              resize: "vertical",
-              padding: "8px 12px",
-              borderRadius: "6px",
-              border: "1px solid #d1d5db",
-              fontSize: "14px",
-              fontFamily: "inherit",
-            }}
+          <VariableTextarea
             value={fieldValue}
-            onChange={(e) => writeValue(field.key, e.target.value)}
-            onFocus={() => {
-              setIsMessageFieldFocused(true);
-            }}
-            onBlur={() => {
-              setIsMessageFieldFocused(false);
-            }}
+            onChange={(value: string) => writeValue(field.key, value)}
+            onFocus={() => setIsMessageFieldFocused(true)}
+            onBlur={() => setIsMessageFieldFocused(false)}
             placeholder={field.placeholder || "Enter your message..."}
+            style={{ width: "100%" }}
+            nodes={nodes}
           />
 
-          {nodes.filter(n => n.data?.appKey?.toLowerCase().includes('gmail') && n.id !== node.id).length > 0 && (
+          {nodes.filter((n: RFNode<RFData>) => n.data?.appKey?.toLowerCase().includes('gmail') && n.id !== node.id).length > 0 && (
             <div style={{
               marginTop: "4px",
               fontSize: "11px",
@@ -424,7 +589,7 @@ export function UniversalInspector({ node, nodes, onChangeNode, onDeleteNode, on
               </p>
             </div>
             <div style={{ padding: "8px" }}>
-              {gmailNodes.map((gmailNode) => {
+              {gmailNodes.map((gmailNode: RFNode<RFData>) => {
                 const nodeLabel = gmailNode.data?.label || 'Gmail Node';
                 // Get data outputs from the Gmail node's app spec
                 const appSpec = APP_CATALOG.find((app: AppSpec) => app.key === gmailNode.data?.appKey);
@@ -450,34 +615,61 @@ export function UniversalInspector({ node, nodes, onChangeNode, onDeleteNode, on
                         <button
                           key={output.key}
                           type="button"
+                          tabIndex={-1}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                          }}
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
 
-                            // Store the currently focused element before any DOM changes
-                            const focusedElement = document.activeElement as HTMLInputElement | HTMLTextAreaElement;
-                            if (!focusedElement || (focusedElement.tagName !== 'INPUT' && focusedElement.tagName !== 'TEXTAREA')) {
-                              return;
+                            const focusedElement = document.activeElement as HTMLElement | null;
+                            if (!focusedElement) return;
+
+                            const isContentEditable = focusedElement.contentEditable === "true";
+                            if (isContentEditable) {
+                              const selection = window.getSelection();
+                              if (!selection || selection.rangeCount === 0) return;
+                              const range = selection.getRangeAt(0);
+
+                              // create badge span
+                              const span = document.createElement("span");
+                              span.contentEditable = "false";
+                              span.setAttribute("data-var-node", gmailNode.id);
+                              span.setAttribute("data-var-key", output.key);
+                              const outputLabel = output.label || output.key;
+                              span.textContent = outputLabel;
+                              span.style.cssText = "display:inline-block;padding:2px 8px;margin:0 2px;background:#eef2ff;color:#3730a3;border-radius:12px;font-size:12px;border:1px solid #c7d2fe;white-space:nowrap;";
+
+                              range.deleteContents();
+                              range.insertNode(span);
+
+                              // move cursor after inserted span
+                              range.setStartAfter(span);
+                              range.setEndAfter(span);
+                              selection.removeAllRanges();
+                              selection.addRange(range);
+
+                              // trigger input/change so VariableTextarea will pick up new value
+                              span.dispatchEvent(new Event("input", { bubbles: true }));
+                              span.dispatchEvent(new Event("change", { bubbles: true }));
+                            } else {
+                              // fallback for inputs/textarea: insert token string
+                              const focusedInput = focusedElement as HTMLInputElement | HTMLTextAreaElement;
+                              if (!("value" in focusedInput)) {
+                                return;
+                              }
+                              const start = (focusedInput as any).selectionStart ?? 0;
+                              const end = (focusedInput as any).selectionEnd ?? 0;
+                              const currentValue = (focusedInput as any).value ?? "";
+                              const token = `{{${gmailNode.id}.${output.key}}}`;
+                              const newValue = currentValue.substring(0, start) + token + currentValue.substring(end);
+                              (focusedInput as any).value = newValue;
+                              const newPos = start + token.length;
+                              (focusedInput as any).setSelectionRange(newPos, newPos);
+                              focusedInput.dispatchEvent(new Event("input", { bubbles: true }));
+                              focusedInput.dispatchEvent(new Event("change", { bubbles: true }));
                             }
-
-                            const variableText = `{${nodeLabel}.${output.key}}`;
-                            const start = focusedElement.selectionStart || 0;
-                            const end = focusedElement.selectionEnd || 0;
-                            const currentValue = focusedElement.value || "";
-                            const newValue = currentValue.substring(0, start) + variableText + currentValue.substring(end);
-
-                            focusedElement.value = newValue;
-
-                            // Update cursor position
-                            const newCursorPos = start + variableText.length;
-                            focusedElement.setSelectionRange(newCursorPos, newCursorPos);
-
-                            // Trigger React state update
-                            focusedElement.dispatchEvent(new Event('input', { bubbles: true }));
-                            focusedElement.dispatchEvent(new Event('change', { bubbles: true }));
-
-                            // Immediately return focus to prevent focus loss
-                            focusedElement.focus();
                           }}
                           style={{
                             padding: "6px 8px",
