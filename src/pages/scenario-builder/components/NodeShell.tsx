@@ -68,7 +68,7 @@ export function NodeShell({ id, color, label, children, showPlus = true, selecte
         borderRadius: 12,
         padding: "2px 8px",
         whiteSpace: "nowrap",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+        boxShadow: "0 4px 12px rgba(0,0,0,0.25)"
       }}>
         {label}
       </div>

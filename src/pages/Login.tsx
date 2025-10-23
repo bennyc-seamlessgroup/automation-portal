@@ -1,7 +1,16 @@
 import { useNavigate } from 'react-router-dom'
+import GmailButton from '../components/GmailButton'
 
 export default function Login() {
     const navigate = useNavigate()
+    const clientId =
+      "630010180311-2rjkqvgcr86799u6poccmd8e6j5hpf4q.apps.googleusercontent.com"; 
+
+    const handleGmail = async(response: any) => {
+      console.log("Authorization code:", JSON.stringify(response));
+    }
+
+
     return (
       <div
         style={{
@@ -42,6 +51,8 @@ export default function Login() {
   
           {/* SSO buttons only */}
           <div className="d-grid gap-3">
+            <GmailButton clientId={clientId} scope="https://www.googleapis.com/auth/gmail.readonly" onSuccess={handleGmail}/>
+
             <button onClick={() => navigate('/dashboard')} className="btn btn-light d-flex align-items-center justify-content-center gap-2">
               <i className="bi bi-google"></i> Continue with Google
             </button>

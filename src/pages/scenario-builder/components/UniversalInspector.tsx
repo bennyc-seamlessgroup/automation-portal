@@ -4,6 +4,8 @@ import type { Node as RFNode } from "reactflow";
 import type { RFData, AppKey, AppSpec, DataOutput } from "../types";
 import { getAppSpec } from "../utils";
 import { APP_CATALOG } from "../catalog";
+import GmailButton from "../../../components/GmailButton";
+import { OAUTH_CONFIG } from "../../../config/oauth";
 
 const builderStyles = {
   formLabel: {
@@ -959,28 +961,41 @@ export function UniversalInspector({ node, nodes, onChangeNode, onDeleteNode, on
               {/* Connection UI based on inspectorConfig.connections */}
               {inspectorConfig.connections.type === "oauth" && inspectorConfig.connections.service === "gmail" ? (
                 <div style={{ marginTop: 12 }}>
-                  <button
-                    style={{
-                      ...builderStyles.input,
-                      background: "#2563eb",
-                      color: "#fff",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "8px 16px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      width: "100%",
-                    }}
-                    onClick={() => {
-                      // Handle Gmail connection logic
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={builderStyles.formLabel}>
+                      Gmail OAuth Configuration
+                      <span style={{ color: "#dc2626" }}>*</span>
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>
+                      Connect your Gmail account to monitor emails and trigger workflows
+                    </div>
+                  </div>
+
+                  <GmailButton
+                    clientId={OAUTH_CONFIG.gmail.clientId}
+                    scope={OAUTH_CONFIG.gmail.scope}
+                    onSuccess={(response: any) => {
+                      // Handle successful OAuth connection
+                      console.log('Gmail OAuth Success:', response);
+                      // Store the authorization code or access token
+                      writeValue('gmailAuthCode', response.code);
                       setConnectionState(true);
                       setStepState(2, "configure");
+                      if (onShowAlert) {
+                        onShowAlert('✅ Gmail account connected successfully!');
+                      }
                     }}
-                  >
-                    <i className="bi bi-google me-2" />
-                    Connect Gmail
-                  </button>
+                    onError={(error: any) => {
+                      console.error('Gmail OAuth Error:', error);
+                      if (onShowAlert) {
+                        onShowAlert('❌ Failed to connect Gmail account. Please try again.');
+                      }
+                    }}
+                  />
+
+                  <div style={{ marginTop: 8, fontSize: "11px", color: "#6b7280" }}>
+                    💡 Set VITE_GMAIL_CLIENT_ID in your environment variables to configure OAuth
+                  </div>
                 </div>
               ) : inspectorConfig.connections.type === "token" && inspectorConfig.connections.service === "telegram" ? (
                 <>
