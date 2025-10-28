@@ -2,18 +2,19 @@
 import type { Node } from "reactflow";
 
 import type { RFData } from "../types";
-import { UniversalInspector } from "./UniversalInspector";
+import UniversalInspector from "./UniversalInspector";
 
 type InspectorBodyProps = {
   node: Node<RFData>;
   nodes: Node<RFData>[];
+  scenarioId?: string | null;
   onChangeNode: (node: Node<RFData>) => void;
   onDeleteNode: (id: string) => void;
   onClose?: () => void;
   onShowAlert?: (message: string) => void;
 };
 
-export function InspectorBody({ node, nodes, onChangeNode, onDeleteNode, onClose, onShowAlert }: InspectorBodyProps) {
+export function InspectorBody({ node, nodes, scenarioId, onChangeNode, onDeleteNode, onClose, onShowAlert }: InspectorBodyProps) {
   const isApp = node.type === "app";
   const data = (node.data || {}) as RFData;
 
@@ -27,6 +28,7 @@ export function InspectorBody({ node, nodes, onChangeNode, onDeleteNode, onClose
         onDeleteNode={onDeleteNode}
         onClose={onClose}
         onShowAlert={onShowAlert}
+        scenarioId={scenarioId}
       />
     );
   }

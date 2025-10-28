@@ -206,13 +206,23 @@ function VariableTextarea({
 type UniversalInspectorProps = {
   node: RFNode<RFData>;
   nodes: RFNode<RFData>[];
+  scenarioId?: string | null;
   onChangeNode: (node: RFNode<RFData>) => void;
   onDeleteNode: (id: string) => void;
   onClose?: () => void;
   onShowAlert?: (message: string) => void;
 };
 
-export function UniversalInspector({ node, nodes, onChangeNode, onDeleteNode, onClose, onShowAlert }: UniversalInspectorProps) {
+export default function UniversalInspector({
+  node,
+  nodes,
+  scenarioId,
+  onChangeNode,
+  onDeleteNode,
+  onClose,
+  onShowAlert,
+}: UniversalInspectorProps) {
+  console.log('scenarioId:', scenarioId);
   const isApp = node.type === "app";
   const data = (node.data || {}) as RFData;
   const appKey = (data.appKey as AppKey) || ("" as AppKey);
@@ -961,19 +971,10 @@ export function UniversalInspector({ node, nodes, onChangeNode, onDeleteNode, on
               {/* Connection UI based on inspectorConfig.connections */}
               {inspectorConfig.connections.type === "oauth" && inspectorConfig.connections.service === "gmail" ? (
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={builderStyles.formLabel}>
-                      Gmail OAuth Configuration
-                      <span style={{ color: "#dc2626" }}>*</span>
-                    </div>
-                    <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>
-                      Connect your Gmail account to monitor emails and trigger workflows
-                    </div>
-                  </div>
-
                   <GmailButton
                     clientId={OAUTH_CONFIG.gmail.clientId}
                     scope={OAUTH_CONFIG.gmail.scope}
+                    text="Connect Gmail Account"
                     onSuccess={(response: any) => {
                       // Handle successful OAuth connection
                       console.log('Gmail OAuth Success:', response);
@@ -993,8 +994,40 @@ export function UniversalInspector({ node, nodes, onChangeNode, onDeleteNode, on
                     }}
                   />
 
-                  <div style={{ marginTop: 8, fontSize: "11px", color: "#6b7280" }}>
-                    💡 Set VITE_GMAIL_CLIENT_ID in your environment variables to configure OAuth
+                  {/* Skip OAuth button */}
+                  <div style={{ marginTop: 12, textAlign: "center" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Skip OAuth and proceed to configuration
+                        console.log('Skipping Gmail OAuth, proceeding to configuration');
+                        setConnectionState(true);
+                        setStepState(2, "configure");
+                        // Removed alert popup as requested
+                      }}
+                      style={{
+                        background: "none",
+                        border: "1px solid #d1d5db",
+                        color: "#6b7280",
+                        padding: "6px 12px",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#f3f4f6";
+                        e.currentTarget.style.borderColor = "#9ca3af";
+                        e.currentTarget.style.color = "#374151";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.borderColor = "#d1d5db";
+                        e.currentTarget.style.color = "#6b7280";
+                      }}
+                    >
+                      Skip OAuth (for dev only)
+                    </button>
                   </div>
                 </div>
               ) : inspectorConfig.connections.type === "token" && inspectorConfig.connections.service === "telegram" ? (
