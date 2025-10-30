@@ -24,7 +24,7 @@ export class GmailWatchEmails {
         fields: [
           {
             key: 'mailbox',
-            label: 'Folder to watch',
+            label: 'Folder/Label to watch',
             type: 'select',
             options: ['All Mails', 'Inbox', 'Sent', 'Chat', 'Starred', 'Important', 'Trash', 'Draft', 'Spam', 'Unread'],
             required: true
@@ -98,7 +98,7 @@ export class GmailWatchEmails {
           validation: {
             mailbox: {
               required: true,
-              custom: (value: any) => !value ? "Please select a folder to watch before continuing." : true
+              custom: (value: any) => !value ? "Please select a folder or label to watch before continuing." : true
             }
           },
           // 🔧 CUSTOM FIELD RENDERING

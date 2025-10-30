@@ -1,11 +1,17 @@
 // src/pages/scenario-builder/components/UniversalInspector.tsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { Node as RFNode } from "reactflow";
 import type { RFData, AppKey, AppSpec, DataOutput } from "../types";
 import { getAppSpec } from "../utils";
 import { APP_CATALOG } from "../catalog";
 import GmailButton from "../../../components/GmailButton";
 import { OAUTH_CONFIG } from "../../../config/oauth";
+import {
+  fetchGmailFolders,
+  fetchGmailEmails,
+  type GmailLabel,
+  type GmailEmail,
+} from "../../../services/gmail/gmail.api";
 
 const builderStyles = {
   formLabel: {
@@ -24,6 +30,38 @@ const builderStyles = {
     fontSize: 16,
   },
 } as const;
+
+const GMAIL_LABELS_STORAGE_KEY = "gmailWatchEmails.labels";
+const LEGACY_GMAIL_FOLDERS_STORAGE_KEY = "gmailWatchEmails.folders";
+const GMAIL_EMAILS_STORAGE_KEY = "gmailWatchEmails.emailsByLabel";
+
+type GmailDropdownOption = {
+  value: string;
+  label: string;
+  type?: string;
+};
+
+const normalizeStoredGmailEmail = (email: any, index: number): GmailEmail => {
+  const title = email?.title || email?.subject || email?.body_plain || "(No title)";
+  const sender =
+    email?.sender ||
+    (email?.from_name && email?.from_email ? `${email.from_name} <${email.from_email}>` : email?.from_email || email?.from_name || "Unknown sender");
+  const datetime = email?.datetime || email?.received_date || new Date().toISOString();
+
+  return {
+    id: email?.id || email?.messageId || `stored-email-${index}`,
+    title,
+    sender,
+    datetime,
+    folder: email?.folder,
+    subject: email?.subject,
+    from_name: email?.from_name,
+    from_email: email?.from_email,
+    body_plain: email?.body_plain,
+    body_html: email?.body_html,
+    received_date: email?.received_date,
+  };
+};
 
 /**
  * Variable-aware editor:
@@ -262,6 +300,14 @@ export default function UniversalInspector({
       setShowNewTokenInput(false);
       setEditingTitle(false);
       setIsMessageFieldFocused(false);
+      setGmailLabels([]);
+      setGmailLabelsLoading(false);
+      setGmailLabelsError(null);
+      setGmailLabelsAttempted(false);
+      setGmailEmailsByLabel({});
+      setGmailEmailsLoading(false);
+      setGmailEmailsError(null);
+      setGmailEmailsRequested({});
     };
   }, [node.id]);
 
@@ -357,6 +403,151 @@ export default function UniversalInspector({
   // Message field focus tracking for variable panel
   const [isMessageFieldFocused, setIsMessageFieldFocused] = useState(false);
 
+  const isGmailWatchEmails = appKey === "gmailWatchEmails";
+  const gmailAuthCode = (localValues?.gmailAuthCode as string | undefined) || undefined;
+  const selectedMailbox = (localValues?.mailbox as string | undefined) || "";
+  const [gmailLabels, setGmailLabels] = useState<GmailLabel[]>([]);
+  const [gmailLabelsLoading, setGmailLabelsLoading] = useState(false);
+  const [gmailLabelsError, setGmailLabelsError] = useState<string | null>(null);
+  const [gmailLabelsAttempted, setGmailLabelsAttempted] = useState(false);
+  const [gmailEmailsByLabel, setGmailEmailsByLabel] = useState<Record<string, GmailEmail[]>>({});
+  const [gmailEmailsLoading, setGmailEmailsLoading] = useState(false);
+  const [gmailEmailsError, setGmailEmailsError] = useState<string | null>(null);
+  const [gmailEmailsRequested, setGmailEmailsRequested] = useState<Record<string, boolean>>({});
+  const selectedMailboxLabel =
+    gmailLabels.find((label) => label.id === selectedMailbox)?.name || selectedMailbox;
+  const emailsForSelectedFolder = selectedMailbox
+    ? gmailEmailsByLabel[selectedMailbox] ?? []
+    : [];
+
+  const formatEmailDate = (value?: string) => {
+    if (!value) return "Unknown date";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleString();
+  };
+
+  const readStoredJson = useCallback((key: string): unknown | null => {
+    if (typeof window === "undefined") return null;
+    try {
+      const stored = window.localStorage.getItem(key);
+      if (!stored) return null;
+      return JSON.parse(stored) as unknown;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const persistJson = useCallback((key: string, value: unknown) => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // Ignore storage write errors
+    }
+  }, []);
+
+  const loadStoredGmailData = useCallback(() => {
+    if (!isGmailWatchEmails) return;
+    const storedLabels = (readStoredJson(GMAIL_LABELS_STORAGE_KEY) || readStoredJson(LEGACY_GMAIL_FOLDERS_STORAGE_KEY)) as GmailLabel[] | null;
+    if (storedLabels?.length) {
+      setGmailLabels(storedLabels);
+    }
+    const storedEmails = readStoredJson(GMAIL_EMAILS_STORAGE_KEY) as Record<string, GmailEmail[]> | Record<string, any[]> | null;
+    if (storedEmails) {
+      const normalizedEmails: Record<string, GmailEmail[]> = {};
+      Object.entries(storedEmails).forEach(([labelId, emails]) => {
+        const list = Array.isArray(emails) ? emails : [];
+        normalizedEmails[labelId] = list.map((email, index) => normalizeStoredGmailEmail(email, index));
+      });
+      setGmailEmailsByLabel(normalizedEmails);
+    }
+  }, [isGmailWatchEmails, readStoredJson]);
+
+  const loadGmailLabels = useCallback(
+    async (options?: { authCode?: string; force?: boolean }) => {
+      if (!isGmailWatchEmails) return;
+      if (!options?.force) {
+        if (gmailLabelsAttempted) {
+          return gmailLabels;
+        }
+        if (gmailLabelsLoading) {
+          return gmailLabels;
+        }
+      }
+
+      setGmailLabelsAttempted(true);
+      setGmailLabelsLoading(true);
+      setGmailLabelsError(null);
+      try {
+        const response = await fetchGmailFolders(options?.authCode ?? gmailAuthCode);
+        const labels = response?.data?.labels || response?.labels || [];
+        const hasLabels = Array.isArray(labels);
+        const normalized = hasLabels ? (labels as GmailLabel[]) : [];
+        if (hasLabels) {
+          setGmailLabels(normalized);
+          persistJson(GMAIL_LABELS_STORAGE_KEY, normalized);
+        } else {
+          setGmailLabelsError("We couldn't load your Gmail folders or labels. Please try again.");
+        }
+        return normalized;
+      } catch (error) {
+        setGmailLabelsError("We couldn't load your Gmail folders or labels. Please try again.");
+        throw error;
+      } finally {
+        setGmailLabelsLoading(false);
+      }
+    },
+    [gmailAuthCode, gmailLabels, gmailLabelsAttempted, gmailLabelsLoading, isGmailWatchEmails, persistJson]
+  );
+
+  const loadGmailEmails = useCallback(
+    async (folderId: string, options?: { authCode?: string; force?: boolean; limit?: number }) => {
+      if (!isGmailWatchEmails || !folderId) return;
+      const alreadyRequested = gmailEmailsRequested[folderId];
+      if (!options?.force) {
+        if (alreadyRequested) {
+          return gmailEmailsByLabel[folderId];
+        }
+        if (gmailEmailsLoading) {
+          return gmailEmailsByLabel[folderId];
+        }
+      }
+
+      setGmailEmailsRequested((prev) => ({ ...prev, [folderId]: true }));
+      setGmailEmailsLoading(true);
+      setGmailEmailsError(null);
+      try {
+        const response = await fetchGmailEmails(
+          folderId,
+          options?.authCode ?? gmailAuthCode,
+          options?.limit ?? 5
+        );
+        const fetchedEmails = response?.data?.emails || response?.emails || [];
+        const hasEmails = Array.isArray(fetchedEmails);
+        const emails = hasEmails ? (fetchedEmails as GmailEmail[]) : [];
+        if (hasEmails) {
+          setGmailEmailsByLabel((prev) => {
+            const next = { ...prev, [folderId]: emails };
+            persistJson(GMAIL_EMAILS_STORAGE_KEY, next);
+            return next;
+          });
+        } else {
+          setGmailEmailsError("We couldn't load recent emails. Please try again.");
+        }
+        return emails;
+      } catch (error) {
+        setGmailEmailsError("We couldn't load recent emails. Please try again.");
+        throw error;
+      } finally {
+        setGmailEmailsLoading(false);
+      }
+    },
+    [gmailAuthCode, gmailEmailsByLabel, gmailEmailsRequested, gmailEmailsLoading, isGmailWatchEmails, persistJson]
+  );
+
   const writeValue = (k: string, v: unknown) => {
     const newValues = { ...localValues, [k]: v };
     setLocalValues(newValues);
@@ -371,6 +562,62 @@ export default function UniversalInspector({
     };
     onChangeNode(updatedNode);
   };
+
+  useEffect(() => {
+    if (!isGmailWatchEmails) return;
+    loadStoredGmailData();
+  }, [isGmailWatchEmails, loadStoredGmailData]);
+
+  useEffect(() => {
+    if (isGmailWatchEmails) return;
+    setGmailLabels([]);
+    setGmailEmailsByLabel({});
+    setGmailLabelsError(null);
+    setGmailEmailsError(null);
+    setGmailLabelsAttempted(false);
+    setGmailEmailsRequested({});
+  }, [isGmailWatchEmails]);
+
+  useEffect(() => {
+    if (!isGmailWatchEmails) return;
+    if ((activeTab === "configure" || currentStep >= 2) && !gmailLabelsLoading && !gmailLabelsAttempted) {
+      void loadGmailLabels();
+    }
+  }, [activeTab, currentStep, gmailLabelsAttempted, gmailLabelsLoading, isGmailWatchEmails, loadGmailLabels]);
+
+  useEffect(() => {
+    if (!isGmailWatchEmails || !selectedMailbox) return;
+    if (gmailEmailsRequested[selectedMailbox] || gmailEmailsLoading) return;
+    void loadGmailEmails(selectedMailbox);
+  }, [isGmailWatchEmails, selectedMailbox, gmailEmailsRequested, gmailEmailsLoading, loadGmailEmails]);
+
+  const handleGmailTest = useCallback(async () => {
+    if (!isGmailWatchEmails) return;
+    if (!selectedMailbox) {
+      setTestError("Please select a Gmail folder or label before running the test.");
+      return;
+    }
+
+    setIsTesting(true);
+    setTestError("");
+    try {
+      const emails = await loadGmailEmails(selectedMailbox, { force: true, authCode: gmailAuthCode, limit: 5 });
+      setIsTesting(false);
+      setTestState(true);
+      if (!emails || emails.length === 0) {
+        return;
+      }
+
+      if (onShowAlert) {
+        onShowAlert("✅ Gmail connection test successful!");
+      }
+    } catch (error) {
+      console.error("[UniversalInspector] Gmail test failed:", error);
+      setIsTesting(false);
+      setTestState(false);
+      setTestError("Unable to fetch emails for the selected folder or label. Please try again.");
+    }
+  }, [gmailAuthCode, isGmailWatchEmails, loadGmailEmails, onShowAlert, selectedMailbox, setTestState]);
 
   // Navigation handlers
   const handleBack = () => {
@@ -391,6 +638,98 @@ export default function UniversalInspector({
   }) => {
     // Skip label field in Configure
     if (field.key.toLowerCase() === "label") return null;
+
+    if (isGmailWatchEmails && field.key === "mailbox") {
+      const fieldValue = selectedMailbox;
+      const hasDynamicOptions = gmailLabels.length > 0;
+      const optionsToRender: GmailDropdownOption[] = hasDynamicOptions
+        ? [...gmailLabels]
+            .sort((a, b) => {
+              if (a.type === b.type) {
+                return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+              }
+              if (a.type === "system") return -1;
+              if (b.type === "system") return 1;
+              return a.type.localeCompare(b.type);
+            })
+            .map((label) => ({ value: label.id, label: label.name, type: label.type }))
+        : (field.options ?? []).map((option) => ({ value: option, label: option, type: undefined }));
+
+      return (
+        <div key={field.key} style={{ marginTop: 10 }}>
+          <div style={builderStyles.formLabel}>
+            {field.label}
+            {field.required && <span style={{ color: "#dc2626" }}>*</span>}
+          </div>
+
+          {gmailLabelsLoading ? (
+            <div style={{ fontSize: "12px", color: "#6b7280", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+              <span>Loading Gmail folders and labels...</span>
+            </div>
+          ) : (
+            <select
+              style={{
+                ...builderStyles.select,
+                width: "100%",
+                padding: "8px 32px 8px 12px",
+                borderRadius: "6px",
+                border: "1px solid #d1d5db",
+                fontSize: "14px",
+                appearance: "none",
+                backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'><path fill='%23666' d='M2 0L0 2h4zm0 5L0 3h4z'/></svg>")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 8px center",
+                backgroundSize: "8px",
+              } as any}
+              value={fieldValue}
+              disabled={!optionsToRender.length}
+              onChange={(e) => writeValue(field.key, e.target.value)}
+            >
+              <option value="">Select a folder or label...</option>
+              {optionsToRender.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                  {option.type ? ` (${option.type === "system" ? "System" : "User"})` : ""}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {gmailLabelsError && (
+            <div style={{ marginTop: 6, fontSize: "12px", color: "#dc2626" }}>
+              {gmailLabelsError}
+              <button
+                type="button"
+                onClick={() => {
+                  void loadGmailLabels({ force: true, authCode: gmailAuthCode });
+                }}
+                disabled={gmailLabelsLoading}
+                style={{
+                  marginLeft: "8px",
+                  fontSize: "12px",
+                  background: "none",
+                  border: "none",
+                  color: "#2563eb",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  padding: 0,
+                  opacity: gmailLabelsLoading ? 0.6 : 1,
+                }}
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {!gmailLabelsLoading && !optionsToRender.length && !gmailLabelsError && (
+            <div style={{ marginTop: 6, fontSize: "12px", color: "#6b7280" }}>
+              No Gmail folders or labels available yet. Try connecting your account again.
+            </div>
+          )}
+        </div>
+      );
+    }
 
     // Handle select/dropdown fields generically for any app
     if (field.type === "select" && field.options) {
@@ -980,6 +1319,11 @@ export default function UniversalInspector({
                       console.log('Gmail OAuth Success:', response);
                       // Store the authorization code or access token
                       writeValue('gmailAuthCode', response.code);
+                      void loadGmailLabels({ authCode: response.code, force: true }).then((labels) => {
+                        if (!selectedMailbox && labels && labels.length > 0) {
+                          writeValue('mailbox', labels[0].id);
+                        }
+                      });
                       setConnectionState(true);
                       setStepState(2, "configure");
                       if (onShowAlert) {
@@ -1003,6 +1347,11 @@ export default function UniversalInspector({
                         console.log('Skipping Gmail OAuth, proceeding to configuration');
                         setConnectionState(true);
                         setStepState(2, "configure");
+                        void loadGmailLabels({ force: true }).then((labels) => {
+                          if (!selectedMailbox && labels && labels.length > 0) {
+                            writeValue('mailbox', labels[0].id);
+                          }
+                        });
                         // Removed alert popup as requested
                       }}
                       style={{
@@ -1359,7 +1708,7 @@ export default function UniversalInspector({
             <p style={{ fontSize: "13px", color: "#475569", margin: 0, lineHeight: 1.5 }}>
               {appKey === "telegramSend"
                 ? "Test your Telegram message to ensure it's working properly. We'll send your configured message to verify your bot is working correctly."
-                : "Test your connection to ensure it's working properly. We'll check for recent emails in your selected folder."
+                : "Test your connection to ensure it's working properly. We'll check for recent emails in your selected folder or label."
               }
             </p>
           </div>
@@ -1399,11 +1748,17 @@ export default function UniversalInspector({
                     fontWeight: "500",
                     flex: 1,
                   }}
-                  onClick={() => {
+                  onClick={async () => {
+                    if (isTesting) return;
+                    if (isGmailWatchEmails) {
+                      await handleGmailTest();
+                      return;
+                    }
+
                     setIsTesting(true);
                     setTestError("");
 
-                    // Simulate test
+                    // Simulate test for non-Gmail apps
                     setTimeout(() => {
                       setIsTesting(false);
                       setTestState(true);
@@ -1416,7 +1771,7 @@ export default function UniversalInspector({
                 >
                   {isTesting ? (
                     <>
-                      <i className="bi bi-hourglass-split me-2" />
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
                       Testing...
                     </>
                   ) : (
@@ -1449,67 +1804,84 @@ export default function UniversalInspector({
                     </div>
                   </div>
                 ) : (
-                  /* Gmail test results (existing) */
                   <div style={{ width: "100%", marginBottom: 16 }}>
                     <div style={{ ...builderStyles.formLabel, fontWeight: 600, color: "#374151", marginBottom: 8 }}>
-                      Recent Emails (Sample Data)
+                      {selectedMailbox
+                        ? `Recent Emails${selectedMailboxLabel ? ` — ${selectedMailboxLabel}` : ""}`
+                        : "Recent Emails"}
                     </div>
 
-                    {/* Record 1 */}
-                    <div style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "6px",
-                      padding: "12px",
-                      marginBottom: "8px",
-                      background: "#fff"
-                    }}>
-                      <div style={{ fontSize: "14px", fontWeight: "500", color: "#1e293b", marginBottom: "4px" }}>
-                        Welcome to Gmail - Getting Started Guide
+                    {gmailEmailsLoading ? (
+                      <div style={{ fontSize: "12px", color: "#6b7280", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                        <span>Loading Gmail emails...</span>
                       </div>
-                      <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "4px" }}>
-                        From: no-reply@accounts.google.com
+                    ) : gmailEmailsError ? (
+                      <div style={{ fontSize: "12px", color: "#dc2626" }}>
+                        {gmailEmailsError}
+                        {selectedMailbox && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void loadGmailEmails(selectedMailbox, { force: true, authCode: gmailAuthCode, limit: 5 });
+                            }}
+                            disabled={gmailEmailsLoading}
+                            style={{
+                              marginLeft: "8px",
+                              fontSize: "12px",
+                              background: "none",
+                              border: "none",
+                              color: "#2563eb",
+                              cursor: "pointer",
+                              textDecoration: "underline",
+                              padding: 0,
+                              opacity: gmailEmailsLoading ? 0.6 : 1,
+                            }}
+                          >
+                            Try again
+                          </button>
+                        )}
                       </div>
-                      <div style={{ fontSize: "12px", color: "#64748b" }}>
-                        Received: 2 hours ago • Inbox
+                    ) : !selectedMailbox ? (
+                      <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                        Select a folder or label in Step 2 to preview recent emails.
                       </div>
-                    </div>
+                    ) : emailsForSelectedFolder.length === 0 ? (
+                      <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                        No emails found in the selected folder or label yet.
+                      </div>
+                    ) : (
+                      emailsForSelectedFolder.slice(0, 5).map((email, index) => {
+                        const emailTitle = email.title || email.subject || "(No title)";
+                        const emailSender = email.sender
+                          || (email.from_name && email.from_email ? `${email.from_name} <${email.from_email}>`
+                          : email.from_email || email.from_name || "Unknown sender");
+                        const emailDate = formatEmailDate(email.datetime || email.received_date);
 
-                    {/* Record 2 */}
-                    <div style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "6px",
-                      padding: "12px",
-                      marginBottom: "8px",
-                      background: "#fff"
-                    }}>
-                      <div style={{ fontSize: "14px", fontWeight: "500", color: "#1e293b", marginBottom: "4px" }}>
-                        Your Weekly Newsletter - Issue #42
-                      </div>
-                      <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "4px" }}>
-                        From: newsletter@techweekly.com
-                      </div>
-                      <div style={{ fontSize: "12px", color: "#64748b" }}>
-                        Received: 1 day ago • Promotions
-                      </div>
-                    </div>
-
-                    {/* Record 3 */}
-                    <div style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "6px",
-                      padding: "12px",
-                      background: "#fff"
-                    }}>
-                      <div style={{ fontSize: "14px", fontWeight: "500", color: "#1e293b", marginBottom: "4px" }}>
-                        Meeting Reminder: Project Review
-                      </div>
-                      <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "4px" }}>
-                        From: calendar-notification@google.com
-                      </div>
-                      <div style={{ fontSize: "12px", color: "#64748b" }}>
-                        Received: 3 days ago • Inbox
-                      </div>
-                    </div>
+                        return (
+                          <div
+                            key={email.id || `gmail-email-${index}`}
+                            style={{
+                              border: "1px solid #e2e8f0",
+                              borderRadius: "6px",
+                              padding: "12px",
+                              marginBottom: "8px",
+                              background: "#fff"
+                            }}
+                          >
+                            <div style={{ fontSize: "14px", fontWeight: "500", color: "#1e293b", marginBottom: "4px" }}>
+                              {emailTitle}
+                            </div>
+                            <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "4px" }}>
+                              From: {emailSender}
+                            </div>
+                            <div style={{ fontSize: "12px", color: "#64748b" }}>
+                              Received: {emailDate}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 )}
 
@@ -1527,10 +1899,18 @@ export default function UniversalInspector({
                       fontWeight: "500",
                       width: "100%",
                     }}
-                    onClick={() => {
+                    onClick={async () => {
+                      if (isTesting) return;
+
                       // Reset test state for another test
                       setHasTested(false);
                       setTestError("");
+
+                      if (isGmailWatchEmails) {
+                        await handleGmailTest();
+                        return;
+                      }
+
                       setIsTesting(true);
                       setTimeout(() => {
                         setIsTesting(false);
